@@ -35,3 +35,8 @@ intersectBed
 twoBitToFa
 
 some more scripts
+
+
+Merging of nearby peak regions:
+Check for called peaks in between?
+
