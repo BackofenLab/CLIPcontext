@@ -1,0 +1,37 @@
+
+Reimplement main script in Python 3.
+
+
+
+
+Input:
+
+CLIP regions genomic, currently: hg38 support
+
+
+Input files needed:
+BED file with genomic CLIP regions
+transcript list (transcripts of interest), or directly from GTF
+hg38 2bit file
+
+
+
+
+Parameters:
+Disable filtering by default (expects fold 2 change eCLIP / tested with)
+
+
+
+
+Options:
+Overlap required for exonic sites: -f 0.9 
+Generate negatives from genomic sequences, or from transcript sequences
+Sanity check.
+
+
+Tool dependencies (in PATH):
+mergeBed
+intersectBed
+twoBitToFa
+
+some more scripts
