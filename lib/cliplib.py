@@ -331,13 +331,56 @@ def read_fasta_into_dic(fasta_file,
 
 ################################################################################
 
+def generate_random_fn(file_ending):
+    """
+    Generate a random file name for temporary files.
+    
+    """
+    random_id = uuid.uuid1()
+    random_fn = str(random_id) + ".tmp." . file_ending
+    return random_fn
 
 
-"""
-    # Generate .tmp file.
-    random_id = uuid.uuid1()
-    tmp_bed = str(random_id) + ".tmp.bed"
-    random_id = uuid.uuid1()
-    tmp_tab = str(random_id) + ".tmp.tab"
-"""
+################################################################################
+
+def make_file_copy(in_file, out_file):
+    """
+    Make a file copy by copying in_file to out_file.
+    """
+
+    check_cmd = "cat " + in_file + " > " + out_file
+    output = subprocess.getoutput(check_cmd)
+    if output:
+        print("ERROR: something went wrong in make_file_copy() (in_file: %s, out_file: %s)" %(in_file, out_file))
+
+
+################################################################################
+
+def diff_two_files_identical(file1, file2):
+    """
+    Check whether two files are identical. Return true if diff reports no 
+    differences.
+    
+    >>> file1 = "test_data/file1"
+    >>> file2 = "test_data/file2"
+    >>> diff_two_files_identical(file1, file2)
+    True
+    >>> file1 = "test_data/test1.bed"
+    >>> diff_two_files_identical(file1, file2)
+    False
+
+    """
+    same = True
+    check_cmd = "diff " + file1 + " " + file2
+    output = subprocess.getoutput(check_cmd)
+    if output:
+        same = False
+    return same
+
+################################################################################
+
+
+
+
+
 

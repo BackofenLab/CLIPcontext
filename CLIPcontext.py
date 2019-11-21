@@ -75,7 +75,7 @@ def setup_argument_parser():
                    dest="in_gtf",
                    type=str,
                    required = True,
-                   help = "Genomic annotation (hg38) GTF file")
+                   help = "Genomic annotation (hg38) GTF file (.gtf.gz also supported)")
     p.add_argument("-g",
                    dest="in_genome_2bit",
                    type=str,
@@ -124,6 +124,8 @@ if __name__ == '__main__':
     # Read in command line arguments.
     args = parser.parse_args()
 
+    # Check for Linux.
+    assert ('linux' in sys.platform), "Sorry but this tool runs on Linux only"
     # Check tool availability.
     if not is_tool("bedtools"):
         print("ERROR: bedtools not in PATH")
@@ -149,14 +151,14 @@ if __name__ == '__main__':
     # Generate results output folder.
     if not os.path.exists(args.out_folder):
         os.makedirs(args.out_folder)
-    # Output files.
-    # agi_file = raw_out_folder + "/" + data_id + "_graph_indicator.txt"
 
     # Read in transcript ID list.
     tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
     if tr_ids_c == 0:
         print("ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list))
         sys.exit()
+    print("# transcript IDs read in:                  %i" %(tr_ids_c))
+    print("# input .bed sites:                        %i" %(c_in_sites))
 
     # Read in transcript sequences.
     tr_seqs_dic = cliplib.read_fasta_into_dic(args.in_fasta, ids_dic=tr_ids_dic)
@@ -171,14 +173,27 @@ if __name__ == '__main__':
         print("WARNING: sites on missing transcripts will be skipped!")
 
     # Filter sites by threshold.
+    tmp_bed1 = generate_random_fn("bed")
     if args.score_thr:
-        
+        cliplib.bed_filter_by_col5_score(args.in_bed, tmp_bed1,
+                                         score_threshold=args.score_thr,
+                                         generate_unique_ids=args.gen_uniq_ids,
+                                         reverse_filter=args.rev_filter)
+    else:
+        cliplib.make_file_copy(args.in_bed, tmp_bed1)
+
+    # Number of remaining sites.
+    c_filt_sites = cliplib.count_file_rows(tmp_bed1)
+    print("# input .bed sites after --thr filtering:  %i" %(c_filt_sites))
+    if not c_filt_sites:
+        print("ERROR: no remaining BED regions after --thr filtering"
+        sys.exit()
 
 
-    print("Number of transcript IDs read in: %i" %(tr_ids_c))
 
-    
 
+print "Read in -bed regions:                         $c_in_bed\n";
+print "Remaining -bed regions after -thr filtering:  $c_filt_in_bed\n";
 
 """
 import gzip
