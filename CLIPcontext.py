@@ -125,7 +125,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Check for Linux.
-    assert ('linux' in sys.platform), "Sorry but this tool runs on Linux only"
+    if not "linux" in sys.platform:
+        print("ERROR: please use Linux")
+        sys.exit()
     # Check tool availability.
     if not is_tool("bedtools"):
         print("ERROR: bedtools not in PATH")
@@ -171,9 +173,12 @@ if __name__ == '__main__':
             print("WARNING: transcript ID \"%s\" not found in -f .fa file" %(tr_id))
     if lost_ids_dic:
         print("WARNING: sites on missing transcripts will be skipped!")
+    # Remove lost IDs from transcript IDs dic.
+    for seq_id in lost_ids_dic:
+        del tr_ids_dic[seq_id]
 
     # Filter sites by threshold.
-    tmp_bed1 = generate_random_fn("bed")
+    tmp_bed1 = args.out_folder + "/" + "filtered_input_sites.tmp.bed"
     if args.score_thr:
         cliplib.bed_filter_by_col5_score(args.in_bed, tmp_bed1,
                                          score_threshold=args.score_thr,
@@ -192,6 +197,17 @@ if __name__ == '__main__':
 
 
 
+
+
+
+# First map full length -bed to transcriptome.
+qx/convert_genome_positions_to_transcriptome.pl -gtf $i_gtf -bed $tmp_bed1 -out $out_map1 -data-id $i_data_id -transcript-list $i_tr_list -ignore-list $ignore_list_file -merge-uniq/;
+
+
+
+
+
+
 print "Read in -bed regions:                         $c_in_bed\n";
 print "Remaining -bed regions after -thr filtering:  $c_filt_in_bed\n";
 
@@ -201,6 +217,10 @@ import gzip
 with gzip.open('input.gz','rt') as f:
     for line in f:
         print('got line', line)
+
+
+Some statistics at the end, how many exonic hits, top hit transcripts with gene names
+
 """
 
     

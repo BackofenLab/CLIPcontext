@@ -3,6 +3,7 @@
 from distutils.spawn import find_executable
 import subprocess
 import statistics
+import gzip
 import uuid
 import sys
 import re
@@ -247,6 +248,16 @@ def count_file_rows(in_file):
     return row_count
 
 
+def intersect_bed_files(a_file, b_file, params, out_file):
+    """
+    Intersect two .bed files, using intersectBed.
+
+    """
+
+    check_cmd = "intersectBed -a " + a_file + " -b " + b_file + " " + params + " > " + out_file
+    output = subprocess.getoutput(check_cmd)
+    assert output == False, "ERROR: intersectBed has problems with your input:\n%s" %(output)
+
 ################################################################################
 
 def read_ids_into_dic(ids_file,
@@ -350,9 +361,7 @@ def make_file_copy(in_file, out_file):
 
     check_cmd = "cat " + in_file + " > " + out_file
     output = subprocess.getoutput(check_cmd)
-    if output:
-        print("ERROR: something went wrong in make_file_copy() (in_file: %s, out_file: %s)" %(in_file, out_file))
-
+    assert output == False, "ERROR: cat did not like your input (in_file: %s, out_file: %s)" %(in_file, out_file)
 
 ################################################################################
 
@@ -380,6 +389,384 @@ def diff_two_files_identical(file1, file2):
 ################################################################################
 
 
+def convert_genome_positions_to_transcriptome(in_bed, out_folder,
+                                              in_gtf, tr_ids_dic,
+                                              all_uniq=False,
+                                              ignore_ids_dic=False):
+    """
+    
+Converts a BED file with genomic coordinates into a BED file with transcriptome 
+coordinates. A GTF file with exon features needs to be supplied. A list of 
+transcript IDs of interest can be supplied too. Note that input BED file column 4 
+is used as region ID and should be unique.
+
+all dic name .._dic 
+Results table:
+tr_id gene_id gene_name biotype #hits #unique_hits
+
+Arguments:
+
+    -help|h            display help page
+    -bed               BED file with genomic interaction regions
+    -out               Output folder with results files
+    -gtf               GTF file with exon features (.gtf.gz or .gtf)
+    -data-id           Supply dataset ID
+    -transcript-list   Supply transcript ID list with transcripts of 
+                       interest. Regions that do not overlap with exon 
+                       regions of transcripts in list will not be 
+                       reported. Transcript IDs should be one per 
+                       line separated by new line.
+    -merge-uniq        Merge both incomplete and complete hits to 
+                       unique hits output file
+                       default: output only complete hits unique 
+                       ones into this file (_unique_matches.bed)
+    -ignore-list       Supply transcript ID list with transcript IDs 
+                       to ignore
+                       default: false (use all from -transcript-list)
+
+=head1 DESCRIPTION
+
+Requirements:
+bedTools (tested with version 2.25.0)
+GTF file needs to have exons sorted (minus + plus strand exons, see test.gtf 
+below as an example). Sorting should be the default (at least for tested 
+Ensembl GTF files)
+Tested with these Ensembl GTF files:
+Mus_musculus.GRCm38.81.gtf.gz
+Mus_musculus.GRCm38.79.gtf.gz
+
+    """
+    # Check for bedtools.
+    assert is_tool("bedtools"), "ERROR: bedtools not in PATH"
+
+    # Results output folder.
+    if not os.path.exists(out_folder):
+        os.makedirs(out_folder)
+    # Output files.
+    genome_exon_bed = out_folder + "/" + "genomic_exon_coordinates.bed"
+    transcript_exon_bed = out_folder + "/" + "transcript_exon_coordinates.bed"
+    overlap_out = out_folder + "/" + "hit_exon_overlap.bed"
+    complete_transcript_matches_bed = out_folder + "/" + "transcript_matches_complete.bed"
+    incomplete_transcript_matches_bed = out_folder + "/" + "transcript_matches_incomplete.bed"
+    uniq_out = out_folder + "/" + "transcript_matches_unique.bed"
+    ol_tr_exons_bed = out_folder + "/" + "mapped_transcript_exons.bed"
+
+    # Check for unique .bed IDs.
+    assert bed_check_unique_ids(in_bed), "ERROR: in_bed \"%s\" column 4 IDs not unique" % (in_bed)
+
+    # Remove IDs to ignore from transcript IDs dictionary.
+    if ignore_ids_dic:
+        for seq_id in ignore_ids_dic:
+            del tr_ids_dic[seq_id]
+
+    # Output genomic exon regions.
+    OUTBED = open(genome_exon_bed, "w")
+
+    # Read in exon features from GTF file.
+    tr2gene_id = {}
+    c_gtf_ex_feat = 0
+    # dic for sanity checking exon number order.
+    tr2exon_nr = {}
+    # dic of lists, storing exon lengths and IDs.
+    tr_exon_len_dic = {}
+    tr_exon_id_dic = {}
+    exon_id_tr_dic = {}
+
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else: 
+        f = open(in_gtf, "r")
+    for line in f:
+        for line in f:
+            # Skip header.
+            if re.search("^#", line):
+                continue
+            cols = line.strip().split("\t")
+            chr_id = cols[0]
+            feature = cols[2]
+            feat_s = int(cols[3])
+            feat_e = int(cols[4])
+            feat_pol = cols[6]
+            infos = cols[8]
+            if not feature == "exon":
+                continue
+
+            # Restrict to standard chromosomes.
+            if re.search("^chr", chr_id):
+                if not re.search("^chr[\dMXY]", chr_id):
+                    continue
+            else:
+                # Convert to "chr" IDs.
+                if not re.search("^[\dMXY]", chr_id):
+                    continue
+                if chr_id == "MT":
+                    chr_id == "M"
+                chr_id = "chr" + chr_id
+
+            # Make start coordinate 0-base (BED standard).
+            feat_s = feat_s - 1
+
+            # Extract transcript ID and from infos.
+            m = re.search('gene_id "(.+?)"', infos)
+            assert m, "ERROR: gene_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            gene_id = m.group(1)
+            # Extract transcript ID.
+            m = re.search('transcript_id "(.+?)"', infos)
+            assert m, "ERROR: transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            transcript_id = m.group(1)
+            # Extract exon number.
+            m = re.search('exon_number "(\d+?)"', infos)
+            assert m, "ERROR: exon_number entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            exon_nr = m.group(1)
+
+            # Check if transcript ID is in transcript dic.
+            if not transcript_id in tr_ids_dic:
+                continue
+
+            # Check whether exon numbers are incrementing for each transcript ID.
+            if not transcript_id in tr2exon_nr:
+                tr2exon_nr[transcript_id] = exon_nr
+            else:
+                assert tr2exon_nr[transcript_id] < exon_nr, "ERROR: transcript ID \"%s\" without monotonically increasing exon numbers in GTF file \"%s\"" %(transcript_id, in_gtf)
+                tr2exon_nr[transcript_id] = exon_nr
+
+            # Make exon count 3-digit.
+            add = ""
+            if exon_nr < 10:
+                add = "00"
+            if exon_nr >= 10 and exon_nr < 100:
+                add = "0"
+
+            # Count exon entry.
+            c_gtf_ex_feat += 1
+            
+            # Construct exon ID.
+            exon_id = transcript_id + "_e" + add + exon_nr
+
+            # Store more infos.
+            tr2gene_id[transcript_id] = gene_id
+            exon_id_tr_dic[exon_id] = transcript_id
+
+            # Store exon lengths in dictionary of lists.
+            feat_l = feat_e - feat_s
+            if not transcript_id in tr_exon_len_dic:
+                tr_exon_len_dic[transcript_id] = [feat_l]
+            else:
+                tr_exon_len_dic[transcript_id].append(feat_l)
+            # Store exon IDs in dictionary of lists.
+            if not transcript_id in tr_exon_id_dic:
+                tr_exon_id_dic[transcript_id] = [exon_id]
+            else:
+                tr_exon_id_dic[transcript_id].append(exon_id)
+
+            # Output genomic exon region.
+            OUTBED.write("%s\t%i\t%i\t%s\t0\t%s\n" % (chr_id,feat_s,feat_e,exon_id,feat_pol))
+
+    OUTBED.close()
+    f.close()
+
+    # Check for read-in features.
+    assert c_gtf_ex_feat, "ERROR: no exon features read in from \"%s\"" %(in_gtf)
+
+    # Output genomic exon regions.
+    OUTBED = open(transcript_exon_bed, "w")
+    tr_exon_starts_dic = {}
+
+    # Calculate transcript exon coordinates from in-order exon lengths.
+    for tr_id in tr_exon_len_dic:
+        start = 0
+        for exon_i, exon_l in enumerate(tr_exon_len_dic[tr_id]):
+            exon_id = tr_exon_id_dic[tr_id][exon_i]
+            new_end = start + ex_l
+            # Store exon transcript start positions (0-based).
+            tr_exon_starts_dic[exon_id] = start
+            OUTBED.write("%s\t%i\t%i\t%s\t0\t+\n" % (tr_id,start,new_end,exon_id))
+            # Set for next exon.
+            start = new_end
+    OUTBED.close()
+
+    # Get input .bed region lengths and scores.
+    id2site_sc_dic = {}
+    id2site_len_dic = {}
+    with open(in_bed) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            site_s = int(cols[1])
+            site_e = int(cols[2])
+            site_id = cols[3]
+            site_sc = float(cols[4])
+            site_pol = cols[5]
+            assert site_pol == "+" or site_pol == "-", "ERROR: invalid strand (in_bed: %s, site_pol: %s)" %(in_bed, site_pol)
+            id2site_sc_dic[site_id] = float(site_sc)
+            id2site_len_dic[site_id] = site_e - site_s
+    f.close()
+
+    # Number input sites.
+    c_in_bed_sites = len(id2site_len_dic)
+
+    # Calculate overlap between genome exon .bed and input .bed.
+    intersect_params = "-s -wb"
+    intersect_bed_files(in_bed, genome_exon_bed, intersect_params, overlap_out)
+
+    # Calculate hit region transcript positions.
+
+    # Store complete and incomplete matches in separate .bed files.
+    OUTINC = open(incomplete_transcript_matches_bed, "w")
+    OUTCOM = open(complete_transcript_matches_bed, "w")
+
+    c_complete = 0
+    c_incomplete = 0
+    c_all = 0
+    # Count site hits dic.
+    c_site_hits_dic = {}
+    # ID to site stats dic of lists.
+    id2stats_dic = {}
+    # ID to hit length dic.
+    id2hit_len_dic = {}
+    # Transcripts with matches dic.
+    match_tr_dic = {} 
+
+    with open(overlap_out) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            s_gen_hit = int(cols[1])
+            e_gen_hit = int(cols[2])
+            site_id = cols[3]
+            s_gen_exon = int(cols[7])
+            e_gen_exon = int(cols[8])
+            exon_id = cols[9]
+            exon_pol = cols[11]
+            c_all += 1
+            if site_id in c_site_hits_dic:
+                c_site_hits_dic[site_id] += 1
+            else:
+                c_site_hits_dic[site_id] = 1
+            # Exon transcript start position (0-based).
+            s_tr_exon = tr_exon_starts_dic[exon_id]
+            # Hit length.
+            l_gen_hit = e_gen_hit - s_gen_hit
+            # Site length.
+            l_site = id2site_len_dic[site_id]
+            # Hit region transcript positions (plus strand).
+            hit_tr_s_pos = s_gen_hit - s_gen_exon + s_tr_exon
+            hit_tr_e_pos = hit_tr_s_pos + l_gen_hit
+            # If exon on reverse (minus) strand.
+            if exon_pol == "-":
+                hit_tr_s_pos = e_gen_exon - e_gen_hit + s_tr_exon
+                hit_tr_e_pos = hit_tr_s_pos + l_gen_hit
+            # Site score.
+            site_sc = id2site_sc_dic[site_id]
+            # Transcript ID.
+            tr_id = exon_id_tr_dic[exon_id]
+            match_tr_dic[tr_id] = 1
+            # Store hit stats list (bed row) for each site.
+            stats_row = "%s\t%i\t%i\t%s\t%f\t+" %(tr_id, hit_tr_s_pos, hit_tr_e_pos, site_id, site_sc)
+            if not site_id in id2stats_dic:
+                id2stats_dic[site_id] = [stats_row]
+            else:
+                id2stats_dic[site_id].append(stats_row)
+            id2hit_len_dic[site_id] = l_gen_hit
+            if l_gen_hit == l_site:
+                # Output complete matches.
+                OUTCOM.write("%s\n" % (stats_row))
+            else:
+                # Output incomplete matches.
+                OUTINC.write("%s\n" % (stats_row))
+    OUTCOM.close()
+    OUTINC.close()
+    f.close()
+
+    OUTUNI = open(uniq_out, "w")
+    c_uniq = 0
+    c_uniq_inc = 0
+    
+    for site_id in c_site_hits_dic:
+        c_hits = c_site_hits_dic[site_id]
+        if c_hits != 1:
+            continue
+        l_hit = id2hit_len_dic[site_id]
+        l_site = id2site_len_dic[site_id]
+        stats_row = id2stats_dic[site_id][0]
+        if l_hit == l_site:
+            c_uniq += 1
+            OUTUNI.write("%s\n" % (stats_row))
+        else:
+            if all_uniq:
+                c_uniq += 1
+                c_uniq_inc += 1
+                OUTUNI.write("%s\n" % (stats_row))
+
+    
+
+"""
+
+
+
+
+
+
+# For all transcripts with mapped regions, store their exons.
+open (IN, $genome_exon_bed) or die "Cannot open $genome_exon_bed: $!";
+open (OUT, '>', $ol_tr_exons_bed) or die "Cannot open $ol_tr_exons_bed: $!";
+
+while (<IN>) {
+
+    chomp;
+
+    my ($chr, $s, $e, $ex_id, $pol) = (split /\t/)[0,1,2,3,5];
+    
+    my ($tr_id) = $ex_id =~ /(.+?)_e/;
+    
+    if (exists $ol_trs{$tr_id}) {
+        print OUT "$chr\t$s\t$e\t$ex_id\t0\t$pol\n";
+    }
+}
+close IN;
+close OUT;
+
+my $c_ids_that_match = keys %c_distinct;
+
+print "Genomic regions to convert:     $c_ids_to_match\n";
+print "Genomic regions converted:      $c_ids_that_match\n";
+print "Region matches on isoforms:     $c_all\n";
+print "Complete region matches:        $c_complete\n";
+print "Incomplete region matches:      $c_incomplete\n";
+my $print_uniq = "Unique region matches:          $c_uniq";
+if ($i_merge_uniq) {
+    $print_uniq .= " (complete+incomplete)";
+}
+print "$print_uniq\n";
+
+exit;
+
+
+
+
+
+/home/uhlm/Data/ensembl_data/Homo_sapiens.GRCh38.97.gtf.gz
+1	ensembl_havana	exon	28887124	28887210	.	+	.	gene_id "ENSG00000159023"; gene_version "21"; transcript_id "ENST00000373800"; transcript_version "7"; exon_number "1"; gene_name "EPB41"; gene_source "ensembl_havana"; gene_biotype "protein_coding"; transcript_name "EPB41-207"; transcript_source "ensembl_havana"; transcript_biotype "protein_coding"; tag "CCDS"; ccds_id "CCDS331"; exon_id "ENSE00001900393"; exon_version "1"; tag "basic"; transcript_support_level "1";
+1	ensembl_havana	exon	28987448	28987905	.	+	.	gene_id "ENSG00000159023"; gene_version "21"; transcript_id "ENST00000373800"; transcript_version "7"; exon_number "2"; gene_name "EPB41"; gene_source "ensembl_havana"; gene_biotype "protein_coding"; transcript_name "EPB41-207"; transcript_source "ensembl_havana"; transcript_biotype "protein_coding"; tag "CCDS"; ccds_id "CCDS331"; exon_id "ENSE00001429864"; exon_version "1"; tag "basic"; transcript_support_level "1";
+
+"""
+
+
+
+"""
+GTF more labels to exploit:
+
+CDS (several per transcript possible of course since on different exons often)
+start_codon
+stop_codon
+five_prime_utr
+three_prime_utr
+
+"""
+
+
+
+
+################################################################################
 
 
 
