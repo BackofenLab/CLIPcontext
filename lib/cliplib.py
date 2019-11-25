@@ -11,12 +11,14 @@ import os
 
 """
 
-OPEN FOR BUSINESS
+=====================
+  OPEN FOR BUSINESS
+=====================
 
+Run doctests:
 
-Mean stdev.
-set_avg = statistics.mean(fvl)
-set_stdev = statistics.stdev(fvl)
+python3 -m doctest cliplib.py
+
 
 
 """
@@ -394,15 +396,39 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
                                               all_uniq=False,
                                               ignore_ids_dic=False):
     """
-    
-Converts a BED file with genomic coordinates into a BED file with transcriptome 
-coordinates. A GTF file with exon features needs to be supplied. A list of 
-transcript IDs of interest can be supplied too. Note that input BED file column 4 
-is used as region ID and should be unique.
 
-all dic name .._dic 
-Results table:
-tr_id gene_id gene_name biotype #hits #unique_hits
+    Converts a BED file with genomic coordinates into a BED file with 
+    transcriptome coordinates. A GTF file with exon features needs to be 
+    supplied. A dictionary of transcript IDs defines to which transcripts 
+    the genomic regions will be mapped to. Note that input BED file column 
+    4 is used as region ID and should be unique. 
+    
+    Output files are:
+    genomic_exon_coordinates.bed
+        Genomic exon coordinates extracted from .gtf file
+    transcript_exon_coordinates.bed
+        Transcript exon coordinates calculated from genomic ones
+    hit_exon_overlap.bed
+        Overlap between genomic input and exon regions
+    transcript_matches_complete.bed
+        Input regions that fully (completely) map to transcript regions
+    transcript_matches_incomplete.bed
+        Input regions that partly (incompletely) map to transcript regions
+    transcript_matches_complete_unique.bed
+        Unique + complete (full-length) matches
+    transcript_matches_all_unique.bed
+        All unique (complete+incomplete) matches
+    hit_transcript_exons.bed
+        Genomic coordinates of exons of transcripts with mapped regions
+    hit_transcript_stats.out
+        Various statistics for transcripts with hits
+        e.g. gene ID, gene name, gene biotype, # unique complete hits,
+        # unique all hits, # complete hits, # all hits
+
+    NOTE that function has been tested with .gtf files from Ensembl. .gtf files
+    from different sources sometimes have a slightly different format, which 
+    could lead to incompatibilities / errors.
+    Tested with file Homo_sapiens.GRCh38.97.gtf.gz
 
 Arguments:
 
@@ -448,8 +474,10 @@ Mus_musculus.GRCm38.79.gtf.gz
     overlap_out = out_folder + "/" + "hit_exon_overlap.bed"
     complete_transcript_matches_bed = out_folder + "/" + "transcript_matches_complete.bed"
     incomplete_transcript_matches_bed = out_folder + "/" + "transcript_matches_incomplete.bed"
-    uniq_out = out_folder + "/" + "transcript_matches_unique.bed"
-    ol_tr_exons_bed = out_folder + "/" + "mapped_transcript_exons.bed"
+    uniq_complete_out = out_folder + "/" + "transcript_matches_complete_unique.bed"
+    uniq_all_out = out_folder + "/" + "transcript_matches_all_unique.bed"
+    hit_tr_exons_bed = out_folder + "/" + "hit_transcript_exons.bed"
+    hit_tr_stats_out = out_folder + "/" + "hit_transcript_stats.out"
 
     # Check for unique .bed IDs.
     assert bed_check_unique_ids(in_bed), "ERROR: in_bed \"%s\" column 4 IDs not unique" % (in_bed)
@@ -463,10 +491,12 @@ Mus_musculus.GRCm38.79.gtf.gz
     OUTBED = open(genome_exon_bed, "w")
 
     # Read in exon features from GTF file.
-    tr2gene_id = {}
+    tr2gene_id_dic = {}
+    tr2gene_name_dic = {}
+    tr2gene_biotype_dic = {}
     c_gtf_ex_feat = 0
     # dic for sanity checking exon number order.
-    tr2exon_nr = {}
+    tr2exon_nr_dic = {}
     # dic of lists, storing exon lengths and IDs.
     tr_exon_len_dic = {}
     tr_exon_id_dic = {}
@@ -519,17 +549,25 @@ Mus_musculus.GRCm38.79.gtf.gz
             m = re.search('exon_number "(\d+?)"', infos)
             assert m, "ERROR: exon_number entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
             exon_nr = m.group(1)
+            # Extract gene name.
+            m = re.search('gene_name "(.+?)"', infos)
+            assert m, "ERROR: gene_name entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            gene_name = m.group(1)
+            # Extract gene biotype.
+            m = re.search('gene_biotype "(.+?)"', infos)
+            assert m, "ERROR: gene_biotype entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            gene_biotype = m.group(1)
 
             # Check if transcript ID is in transcript dic.
             if not transcript_id in tr_ids_dic:
                 continue
 
             # Check whether exon numbers are incrementing for each transcript ID.
-            if not transcript_id in tr2exon_nr:
-                tr2exon_nr[transcript_id] = exon_nr
+            if not transcript_id in tr2exon_nr_dic:
+                tr2exon_nr_dic[transcript_id] = exon_nr
             else:
-                assert tr2exon_nr[transcript_id] < exon_nr, "ERROR: transcript ID \"%s\" without monotonically increasing exon numbers in GTF file \"%s\"" %(transcript_id, in_gtf)
-                tr2exon_nr[transcript_id] = exon_nr
+                assert tr2exon_nr_dic[transcript_id] < exon_nr, "ERROR: transcript ID \"%s\" without monotonically increasing exon numbers in GTF file \"%s\"" %(transcript_id, in_gtf)
+                tr2exon_nr_dic[transcript_id] = exon_nr
 
             # Make exon count 3-digit.
             add = ""
@@ -545,7 +583,9 @@ Mus_musculus.GRCm38.79.gtf.gz
             exon_id = transcript_id + "_e" + add + exon_nr
 
             # Store more infos.
-            tr2gene_id[transcript_id] = gene_id
+            tr2gene_name_dic[transcript_id] = gene_name
+            tr2gene_biotype_dic[transcript_id] = gene_biotype
+            tr2gene_id_dic[transcript_id] = gene_id
             exon_id_tr_dic[exon_id] = transcript_id
 
             # Store exon lengths in dictionary of lists.
@@ -625,7 +665,17 @@ Mus_musculus.GRCm38.79.gtf.gz
     # ID to hit length dic.
     id2hit_len_dic = {}
     # Transcripts with matches dic.
-    match_tr_dic = {} 
+    match_tr_dic = {}
+    # Transcript ID to unique complete hits dic.
+    tr2uniq_com_hits_dic = {}
+    # Transcript ID to unique all hits dic.
+    tr2uniq_all_hits_dic = {}
+    # Transcript ID to complete hits dic.
+    tr2com_hits_dic = {}
+    # Transcript ID to all hits dic.
+    tr2all_hits_dic = {}
+    # Site ID to transcript ID dic.
+    site2tr_id_dic = {}
 
     with open(overlap_out) as f:
         for line in f:
@@ -659,6 +709,9 @@ Mus_musculus.GRCm38.79.gtf.gz
             site_sc = id2site_sc_dic[site_id]
             # Transcript ID.
             tr_id = exon_id_tr_dic[exon_id]
+            # Store transcript ID for each site ID.
+            site2tr_id_dic[site_id] = tr_id
+            # Store match for transcript ID yes.
             match_tr_dic[tr_id] = 1
             # Store hit stats list (bed row) for each site.
             stats_row = "%s\t%i\t%i\t%s\t%f\t+" %(tr_id, hit_tr_s_pos, hit_tr_e_pos, site_id, site_sc)
@@ -670,40 +723,99 @@ Mus_musculus.GRCm38.79.gtf.gz
             if l_gen_hit == l_site:
                 # Output complete matches.
                 OUTCOM.write("%s\n" % (stats_row))
+                # Count complete hits per transcript.
+                if tr_id in tr2com_hits_dic:
+                    tr2com_hits_dic[tr_id] += 1
+                else:
+                    tr2com_hits_dic[tr_id] = 1
             else:
                 # Output incomplete matches.
                 OUTINC.write("%s\n" % (stats_row))
+            # Count all hits per transcript.
+            if tr_id in tr2all_hits_dic:
+                tr2all_hits_dic[tr_id] += 1
+            else:
+                tr2all_hits_dic[tr_id] = 1
+             
     OUTCOM.close()
     OUTINC.close()
     f.close()
 
-    OUTUNI = open(uniq_out, "w")
-    c_uniq = 0
-    c_uniq_inc = 0
-    
+    # Output unique hits (two files, one only complete hits, other all).
+    OUTUNIALL = open(uniq_all_out, "w")
+    OUTUNICOM = open(uniq_complete_out, "w")
+
     for site_id in c_site_hits_dic:
         c_hits = c_site_hits_dic[site_id]
         if c_hits != 1:
             continue
         l_hit = id2hit_len_dic[site_id]
         l_site = id2site_len_dic[site_id]
+        tr_id = site2tr_id_dic[site_id]
         stats_row = id2stats_dic[site_id][0]
         if l_hit == l_site:
-            c_uniq += 1
-            OUTUNI.write("%s\n" % (stats_row))
+            # Store unique + complete hit.
+            OUTUNICOM.write("%s\n" % (stats_row))
+            if tr_id in tr2uniq_com_hits_dic:
+                tr2uniq_com_hits_dic[tr_id] += 1
+            else:
+                tr2uniq_com_hits_dic[tr_id] = 1
+        # Store unique hit (complete or incomplete).
+        OUTUNIALL.write("%s\n" % (stats_row))
+        if tr_id in tr2uniq_all_hits_dic:
+            tr2uniq_all_hits_dic[tr_id] += 1
         else:
-            if all_uniq:
-                c_uniq += 1
-                c_uniq_inc += 1
-                OUTUNI.write("%s\n" % (stats_row))
+            tr2uniq_all_hits_dic[tr_id] = 1
 
+    OUTUNICOM.close()
+    OUTUNIALL.close()
+    
+
+    # For all transcripts with mapped regions, store exons.bed + stats.out.
+    OUTEXBED = open(hit_tr_exons_bed, "w")
+    OUTSTATS = open(hit_tr_stats_out, "w")
+
+    with open(genome_exon_bed) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            s_gen_hit = int(cols[1])
+            e_gen_hit = int(cols[2])
+            site_id = cols[3]
+            s_gen_exon = int(cols[7])
+            e_gen_exon = int(cols[8])
+            exon_id = cols[9]
+            exon_pol = cols[11]
+            c_all += 1
+            if site_id in c_site_hits_dic:
+                c_site_hits_dic[site_id] += 1
+
+    OUTEXBED.close()
+    OUTSTATS.close()
     
 
 """
+    # Transcript ID to unique complete hits dic.
+    tr2uniq_com_hits_dic = {}
+    # Transcript ID to unique all hits dic.
+    tr2uniq_all_hits_dic = {}
+    # Transcript ID to complete hits dic.
+    tr2com_hits_dic = {}
+    # Transcript ID to all hits dic.
+    tr2all_hits_dic = {}
+
+    tr2gene_id_dic = {}
+    tr2gene_name_dic = {}
+    tr2gene_biotype_dic = {}
 
 
+# hits unique_comp
+# hits unique_all
+# Hits incomplete
+# Hits complete
 
 
+Results table:
+tr_id gene_id gene_name biotype #hits #unique_hits
 
 
 # For all transcripts with mapped regions, store their exons.
@@ -747,6 +859,12 @@ exit;
 /home/uhlm/Data/ensembl_data/Homo_sapiens.GRCh38.97.gtf.gz
 1	ensembl_havana	exon	28887124	28887210	.	+	.	gene_id "ENSG00000159023"; gene_version "21"; transcript_id "ENST00000373800"; transcript_version "7"; exon_number "1"; gene_name "EPB41"; gene_source "ensembl_havana"; gene_biotype "protein_coding"; transcript_name "EPB41-207"; transcript_source "ensembl_havana"; transcript_biotype "protein_coding"; tag "CCDS"; ccds_id "CCDS331"; exon_id "ENSE00001900393"; exon_version "1"; tag "basic"; transcript_support_level "1";
 1	ensembl_havana	exon	28987448	28987905	.	+	.	gene_id "ENSG00000159023"; gene_version "21"; transcript_id "ENST00000373800"; transcript_version "7"; exon_number "2"; gene_name "EPB41"; gene_source "ensembl_havana"; gene_biotype "protein_coding"; transcript_name "EPB41-207"; transcript_source "ensembl_havana"; transcript_biotype "protein_coding"; tag "CCDS"; ccds_id "CCDS331"; exon_id "ENSE00001429864"; exon_version "1"; tag "basic"; transcript_support_level "1";
+
+
+1       havana  exon    11869   12227   .       +       .       gene_id "ENSG00000223972"; gene_version "5"; transcript_id "ENST00000456328"; transcript_version "2"; exon_number "1"; gene_name "DDX11L1"; gene_source "havana"; gene_biotype "transcribed_unprocessed_pseudogene"; transcript_name "DDX11L1-202"; transcript_source "havana"; transcript_biotype "lncRNA"; exon_id "ENSE00002234944"; exon_version "1"; tag "basic"; transcript_support_level "1";
+1       havana  exon    12613   12721   .       +       .       gene_id "ENSG00000223972"; gene_version "5"; transcript_id "ENST00000456328"; transcript_version "2"; exon_number "2"; gene_name "DDX11L1"; gene_source "havana"; gene_biotype "transcribed_unprocessed_pseudogene"; transcript_name "DDX11L1-202"; transcript_source "havana"; transcript_biotype "lncRNA"; exon_id "ENSE00003582793"; exon_version "1"; tag "basic"; transcript_support_level "1";
+1       havana  exon    13221   14409   .       +       .       gene_id "ENSG00000223972"; gene_version "5"; transcript_id "ENST00000456328"; transcript_version "2"; exon_number "3"; gene_name "DDX11L1"; gene_source "havana"; gene_biotype "transcribed_unprocessed_pseudogene"; transcript_name "DDX11L1-202"; transcript_source "havana"; transcript_biotype "lncRNA"; exon_id "ENSE00002312635"; exon_version "1"; tag "basic"; transcript_support_level "1";
+
 
 """
 
