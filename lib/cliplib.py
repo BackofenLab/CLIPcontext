@@ -139,8 +139,7 @@ def bed_get_region_id_scores(in_bed_file):
     Return dictionary with mappings region ID -> region score
 
     >>> test_bed = "test_data/test3.bed"
-    >>> id2sc_dic = bed_get_region_id_scores(test_bed)
-    >>> id2sc_dic
+    >>> bed_get_region_id_scores(test_bed)
     {'CLIP2': 2.57, 'CLIP1': 1.58, 'CLIP3': 3.11}
 
     """
@@ -302,6 +301,76 @@ def bed_sort_file(in_bed, out_bed,
 
 ################################################################################
 
+def bed_merge_file(in_bed, out_bed,
+                   custom_params_str=False):
+    """
+    Use mergeBed from bedtools to merge overlapping .bed entries, storing 
+    the region IDs to later pick one region for each set of overlapping 
+    regions.
+    
+    """
+    # Check for bedtools.
+    assert is_tool("bedtools"), "bedtools not in PATH"
+    # Parameter string.
+    params_str = '-s -c 4 -o distinct -delim ";"'
+    if custom_params_str:
+        params_str = custom_params_str
+    check_cmd = "mergeBed -i " + in_bed + " " + params_str + " > " + out_bed
+    output = subprocess.getoutput(check_cmd)
+    error = False
+    if output:
+        error = True
+    assert error == False, "mergeBed is complaining:\n%s\n%s" %(check_cmd, output)
+
+
+################################################################################
+
+def bed_merge_file_select_top_ids(in_merged_bed, id2sc_dic,
+                                  rev_filter=False):
+    """
+    Given a merged .bed file (using mergeBed or bed_merge_file() ),
+    select the top scoring region IDs from the merged file, where in case 
+    of overlaps the best scoring region ID is picked.
+    rev_filter=True leads to lower scores regarded as better, e.g. in case 
+    of p-values.
+
+    >>> test_merged = "test_data/test.sorted.merged.bed"
+    >>> id2sc_dic = {'r1': 1, 'r2': 2, 'r4': 4, 'r7' : 3}
+    >>> bed_merge_file_select_top_ids(test_merged, id2sc_dic)
+    {'r4': 4, 'r7': 3}
+    >>> bed_merge_file_select_top_ids(test_merged, id2sc_dic, rev_filter=True)
+    {'r1': 1, 'r7': 3}
+
+    """
+    ids2keep_dic = {}
+    assert id2sc_dic, "given ID to score dictionary seems to be empty"
+    with open(in_merged_bed) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            ids = cols[4].split(";")
+            best_id = "-"
+            best_sc = 0
+            if rev_filter:
+                best_sc = 1000000
+            for site_id in ids:
+                assert site_id in id2sc_dic, "site ID \"%s\" not found in given site ID to score dictionary" % (site_id)
+                site_sc = id2sc_dic[site_id]
+                if rev_filter:
+                    if site_sc < best_sc:
+                        best_sc = site_sc
+                        best_id = site_id
+                else:
+                    if site_sc > best_sc:
+                        best_sc = site_sc
+                        best_id = site_id
+            ids2keep_dic[best_id] = best_sc
+    f.closed
+    assert ids2keep_dic, "No IDs read in to dictionary (input file \"%s\" empty or malformatted?)" % (in_merged_bed)
+    return ids2keep_dic
+
+
+################################################################################
+
 def intersect_bed_files(a_file, b_file, params, out_file):
     """
     Intersect two .bed files, using intersectBed.
@@ -324,8 +393,7 @@ def read_ids_into_dic(ids_file,
     Read in IDs list file, where each line stores one ID.
 
     >>> test_ids_file = "test_data/test.ids"
-    >>> ids_dic = read_ids_into_dic(test_ids_file)
-    >>> print(ids_dic)
+    >>> read_ids_into_dic(test_ids_file)
     {'CLIP1': 1, 'CLIP2': 1, 'CLIP3': 1}
 
     """
@@ -425,6 +493,7 @@ def make_file_copy(in_file, out_file):
         error = True
     assert error == False, "cat did not like your input (in_file: %s, out_file: %s):\n%s" %(in_file, out_file, output)
 
+
 ################################################################################
 
 def diff_two_files_identical(file1, file2):
@@ -448,8 +517,8 @@ def diff_two_files_identical(file1, file2):
         same = False
     return same
 
-################################################################################
 
+################################################################################
 
 def convert_genome_positions_to_transcriptome(in_bed, out_folder,
                                               in_gtf, tr_ids_dic,
@@ -858,6 +927,8 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     OUTEXBED.close()
     OUTSTATS.close()
 
+
+################################################################################
 
 
 """

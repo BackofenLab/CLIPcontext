@@ -1,0 +1,5 @@
+tr_id	gene_id	gene_name	gene_biotype	comp_hits	all_hits	uniq_comp_hits	uniq_all_hits
+ENST001	ENSG001	ABC1	transcribed_unprocessed_pseudogene	1	2	1	2
+ENST001	ENSG001	ABC1	transcribed_unprocessed_pseudogene	1	2	1	2
+ENST002	ENSG002	DEF1	transcribed_unprocessed_pseudogene	1	2	1	2
+ENST002	ENSG002	DEF1	transcribed_unprocessed_pseudogene	1	2	1	2

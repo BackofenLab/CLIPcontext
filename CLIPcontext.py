@@ -29,6 +29,9 @@ python CLIPcontext.py -i
 -a /home/uhlm/Data/ensembl_data/Homo_sapiens.GRCh38.97.gtf.gz
 
 
+mergeBed site selection based on site scores!
+So check 
+
 """
 
 ################################################################################
@@ -221,16 +224,21 @@ if __name__ == '__main__':
                                      disable_filter=True,
                                      ext_lr=args.merge_ext,
                                      center_sites=False)
+
+    # Sort .bed file.
+    cliplib.bed_sort_file(tmp_bed2, tmp_bed3)
+
+    # Merge .bed file (mergeBed overlapping regions).
+    cliplib.bed_merge_file(tmp_bed3, tmp_bed4)
+    
+    # Select region IDs (in case of overlaps choose highest-scoring region).
+    ids2keep_dic = {}
     
 
+def bed_sort_file(in_bed, out_bed,
+                  custom_params_str=False):
+
 """
-
-
-# Sort BED file.
-qx/sort -k1,1 -k2,2n $tmp_bed2 > $tmp_bed3/;
-
-# mergeBed the file.
-qx/mergeBed -i $tmp_bed3 -s -c 4 -o distinct -delim ";" >  $tmp_bed4/;
 
 # Store selected regions IDs.
 my %ids2keep;
