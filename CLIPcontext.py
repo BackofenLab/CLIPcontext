@@ -194,49 +194,79 @@ if __name__ == '__main__':
         print("ERROR: no remaining BED regions after --thr filtering"
         sys.exit()
 
+    # # First map full length .bed to transcriptome.
+    full_length_out = args.out_folder + "/" + "transcript_map_full_length_out"
+    cliplib.convert_genome_positions_to_transcriptome(tmp_bed1, full_length_out, 
+                                                      args.in_gtf, tr_ids_dic)
+    # All unique matches (complete + incomplete).
+    uniq_hits_full_length_map = full_length_out + "/" + "transcript_hits_all_unique.bed"
 
+    # Count unique hits.
+    c_uniq_fl_hits = cliplib.count_file_rows(uniq_hits_full_length_map)
+    print("# unique transcript hits:                  %i" %(c_uniq_fl_hits))
+    if not c_uniq_fl_hits:
+        print("ERROR: no unique transcript hits for given genomic .bed and transcripts"
+        sys.exit()
 
+    # Get scores for unique hits.
+    id2sc_dic = cliplib.bed_get_region_id_scores(unique_hits_full_length_map)
 
+    # Prolong unique hits.
+    tmp_bed2 = args.out_folder + "/" + "prolonged_unique_transcript_hits.tmp.bed";
+    tmp_bed3 = args.out_folder + "/" + "prolonged_unique_transcript_hits.sorted.tmp.bed";
+    tmp_bed4 = args.out_folder + "/" + "prolonged_unique_transcript_hits.merged.tmp.bed";
 
-
-
-# First map full length -bed to transcriptome.
-qx/convert_genome_positions_to_transcriptome.pl -gtf $i_gtf -bed $tmp_bed1 -out $out_map1 -data-id $i_data_id -transcript-list $i_tr_list -ignore-list $ignore_list_file -merge-uniq/;
-
-
-
-
-
-
-print "Read in -bed regions:                         $c_in_bed\n";
-print "Remaining -bed regions after -thr filtering:  $c_filt_in_bed\n";
+    # Prolong unique hits by set merge extension.
+    cliplib.bed_filter_by_col5_score(unique_hits_full_length_map, tmp_bed2,
+                                     disable_filter=True,
+                                     ext_lr=args.merge_ext,
+                                     center_sites=False)
+    
 
 """
-import gzip
-
-with gzip.open('input.gz','rt') as f:
-    for line in f:
-        print('got line', line)
 
 
-Some statistics at the end, how many exonic hits, top hit transcripts with gene names
+# Sort BED file.
+qx/sort -k1,1 -k2,2n $tmp_bed2 > $tmp_bed3/;
+
+# mergeBed the file.
+qx/mergeBed -i $tmp_bed3 -s -c 4 -o distinct -delim ";" >  $tmp_bed4/;
+
+# Store selected regions IDs.
+my %ids2keep;
+
+open(IN, $tmp_bed4) or die "Cannot open $tmp_bed4: $!";
+
+while (<IN>) {
+    chomp;
+    my ($ids) = (split /\t/)[4];
+    $ids .= ";";
+    # Select best ID from cluster.
+    my $best_id = "-";
+    my $best_sc = 0;
+    while ($ids =~ /(.+?);/g) {
+        my $id = $1;
+        if ($id2sc{$id} > $best_sc) {
+            $best_sc = $id2sc{$id};
+            $best_id = $id;
+        }
+    }
+    $ids2keep{$best_id} = $best_sc;
+}
+close IN;
+
+my $c_keep = keys %ids2keep;
+
+print "Unique transcript matches to keep:            $c_keep\n";
+
+unless ($c_keep) {
+    die "ERROR: no best IDs selected";
+}
+
 
 """
 
-    
-    # Get region IDs, lengths, strand polarities.
-    id2pol_dic = {}
-    id2len_dic = {}
-    with open(args.in_bed) as f:
-        for line in f:
-            cols = line.strip().split("\t")
-            start = int(cols[1])
-            end = int(cols[2])
-            region_id = cols[3]
-            pol = cols[5]
-            region_l = end - start
-            id2pol_dic[region_id] = pol
-            id2len_dic[region_id] = region_l
-    f.closed
-    
+
+
+
 
