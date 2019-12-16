@@ -3,4 +3,4 @@ Extract CLIP-seq binding region sequences with both genomic and transcript conte
 
 
 
-<img src="doc/figures/gen_tr_context.png">
+<img src="doc/figures/gen_tr_context2.png">
