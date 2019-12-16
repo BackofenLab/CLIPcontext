@@ -1,0 +1,10 @@
+epochs: 40
+lambda: 0.001
+R: 4
+D: 6
+bitsize: 14
+model_type: sequence
+pos_train_ws_pred_median: 1.033690
+pos_train_profile_median: 8.680340
+pos_train_avg_profile_median_1: 4.027981
+pos_train_avg_profile_median_2: 3.027981
