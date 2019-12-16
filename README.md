@@ -5,7 +5,12 @@ and retrieves the region sequences with both genomic and transcript sequence con
 
 ## Installation
 
+```
+git clone https://github.com/michauhl/CLIPcontext.git
+cd CLIPcontext
+python CLIPcontext.py -h
 
+```
 
 ### Dependencies
 Dependencies for CLIPcontext are as follows:
