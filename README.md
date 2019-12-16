@@ -6,7 +6,7 @@ and retrieves the region sequences with both genomic and transcript sequence con
 
 ## Installation
 
-To install CLIPcontext, simply clone the repository and use the tool within the folder:
+To install CLIPcontext, simply clone the repository and use the Python script within the folder:
 
 ```
 git clone https://github.com/michauhl/CLIPcontext.git
