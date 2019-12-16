@@ -1,5 +1,6 @@
 # CLIPcontext
-Extract CLIP-seq binding region sequences with both genomic and transcript context
+CLIPcontext takes genomic RBP binding regions identified by CLIP-seq, maps them to the transcriptome, 
+and retrieves the region sequences with both genomic and transcript context.
 
 
 <img src="doc/figures/gen_tr_context.png" alt="Site with genomic and transcript context"
