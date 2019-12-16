@@ -18,7 +18,7 @@ python CLIPcontext.py -h
 Dependencies for CLIPcontext are as follows:
 
 - python3 (tested with version 3.7.3)
-- [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version v2.26.0)
+- [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.26.0)
 - [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
 
 ### Dataset requirements
