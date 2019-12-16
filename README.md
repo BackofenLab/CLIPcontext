@@ -1,7 +1,24 @@
 # CLIPcontext
 CLIPcontext takes genomic RBP binding regions identified by CLIP-seq, maps them to the transcriptome, 
-and retrieves the region sequences with both genomic and transcript context.
+and retrieves the region sequences with both genomic and transcript sequence context.
 
+
+## Installation
+
+
+
+### Dependencies
+Dependencies for CLIPcontext are as follows:
+
+- python3 (tested with version 3.7.3)
+- [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version v2.26.0)
+- [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
+
+
+
+## Documentation
+
+Here's how it works:
 
 <img src="doc/figures/gen_tr_context.png" alt="Site with genomic and transcript context"
 	title="Site with genomic and transcript context" width="600" />
