@@ -56,14 +56,17 @@ python CLIPcontext.py
 -g /home/uhlm/Daten/genomes_2bit/hg38.2bit
 
 
+
+
 EXAMPLE CALLS
 =============
 
 python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.97.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
 
-
 python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
 
+python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+GRCh38.p12.prominent_isoforms_chr1.out
 
 
 TO DO:
@@ -273,11 +276,11 @@ if __name__ == '__main__':
     # Output files.
     filt_in_bed = args.out_folder + "/" + "genomic_sites.bed"
     gen_cp_bed = args.out_folder + "/" + "genomic_sites.cp.bed"
-    gen_cp_ext_bed = args.out_folder + "/" + "genomic_sites.cp.extud%i.bed" % (args.us_ds_ext)
-    gen_cp_ext_fa = args.out_folder + "/" + "genomic_sites.cp.extud%i.fa" % (args.us_ds_ext)
+    gen_cp_ext_bed = args.out_folder + "/" + "genomic_sites.cp.ext.bed"
+    gen_cp_ext_fa = args.out_folder + "/" + "genomic_sites.cp.ext.fa"
     tr_uniq_cp_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.bed"
-    tr_uniq_cp_ext_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.extud%i.bed" % (args.us_ds_ext)
-    tr_uniq_cp_ext_fa = args.out_folder + "/" + "transcript_sites.unique_hits.cp.extud%i.fa" % (args.us_ds_ext)
+    tr_uniq_cp_ext_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.ext.bed"
+    tr_uniq_cp_ext_fa = args.out_folder + "/" + "transcript_sites.unique_hits.cp.ext.fa"
     # Full length files.
     tr_fl_comp_bed = args.out_folder + "/" + "transcript_hits_complete.bed"
     tr_fl_incomp_bed = args.out_folder + "/" + "transcript_hits_incomplete.bed"
@@ -568,7 +571,7 @@ if __name__ == '__main__':
                                  ext_lr=args.us_ds_ext,
                                  center_sites=True)
     # Extend genomic center position sites with zero scores for twoBitToFa.
-    tmp_bed7 = args.out_folder + "/" + "genomic_sites.cp.extud.no_sc.tmp.bed"
+    tmp_bed7 = args.out_folder + "/" + "genomic_sites.cp.ext.no_sc.tmp.bed"
     cliplib.bed_process_bed_file(filt_in_bed, tmp_bed7,
                                  ext_lr=args.us_ds_ext,
                                  zero_scores=True,
