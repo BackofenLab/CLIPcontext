@@ -118,7 +118,7 @@ Merged and uniquely mapped sites are then mapped again to the transcriptome, thi
 genomic sites to get both transcript and genomic context sequences. Transcript regions without full extension indicate their location near exon ends.
 A number of sanity checks are performed throughout the script. For example, extracted transcript center position nucleotides are compared with genomic center position nucleotides.
 
-At the end of the run, CLIPcontext prints an overview with short discriptions for each output file:
+At the end of the run, CLIPcontext prints an overview with short discriptions for each output file (--out test_out):
 
 ```
 ....
@@ -158,8 +158,9 @@ Unique matches on transcripts center positions extended .bed:
 test_out/transcript_sites.unique_hits.cp.ext.bed
 Unique matches on transcripts center positions extended .fa:
 test_out/transcript_sites.unique_hits.cp.ext.fa
-
 ```
+Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --us-ds-ext). Additional mapping statistics are stored in the file hit_transcript_stats.out (see below for format).
+
 
 ### Dataset formats
 
@@ -188,3 +189,16 @@ ENST00000445118
 ENST00000446136
 ```
 The transcript IDs defined in this file are used to define the transcript set onto which the genomic regions (--in) are mapped to.
+
+#### Mapping statistics output file
+
+The mapping statistics output file stores the hit statistics for each transcript:
+```
+head -5 test_out/hit_transcript_stats.out 
+tr_id	chr	gen_s	gen_e	pol	gene_id	gene_name	gene_biotype	tr_len	comp_hits	all_hits	uniq_comp_hits	uniq_all_hits
+ENST00000361427	chr1	26472439	26476642	+	ENSG00000198830HMGN2	protein_coding	1940	1	1	1	1
+ENST00000327300	chr1	32013867	32043877	+	ENSG00000121774KHDRBS1	protein_coding	2713	6	6	6	6
+ENST00000368300	chr1	156114710	156140081	+	ENSG00000160789LMNA	protein_coding	3178	11	12	11	12
+ENST00000379370	chr1	1020119	1056116	+	ENSG00000188157	AGRN	protein_coding	7326	11	12	11	12
+```
+
