@@ -192,7 +192,7 @@ The transcript IDs defined in this file are used to define the transcript set on
 
 #### Mapping statistics output file
 
-The mapping statistics output file stores the hit statistics for each transcript:
+The mapping statistics output file stores different hit statistics and additional information for each transcript:
 ```
 head -5 test_out/hit_transcript_stats.out 
 tr_id	chr	gen_s	gen_e	pol	gene_id	gene_name	gene_biotype	tr_len	comp_hits	all_hits	uniq_comp_hits	uniq_all_hits
