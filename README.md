@@ -110,6 +110,8 @@ Here's how it works:
 
 ### Dataset formats
 
+#### BED file (--in)
+
 The --in BED file should be in 6-column format, with unique region (site) IDs in column 4:
 ```
 head -5 SERBP1_K562_rep1_sites_chr1_hg38.bed
@@ -119,4 +121,17 @@ chr1	951145	951177	SERBP1_K562_rep01_1327	3.837688284099	-
 chr1	1020139	1020235	SERBP1_K562_rep01_1014	5.51576018921164	+
 chr1	1040657	1040700	SERBP1_K562_rep01_1049	4.25272578337784	+
 ```
-Note that column 5 is expected to store the region score (in this case the log2 fold change output by the CLIPper peak caller). By default, a higher score is preferred when filtering the sites by --thr. In case this should be reversed (e.g. if p-values are given), use --thr in combination with --rev-filter.
+Note that column 5 is expected to store the region score (in this case the log2 fold change output by the CLIPper peak caller). By default, a higher score is preferred when filtering the sites by --thr. In case this should be reversed (e.g. if p-values are given), use --rev-filter in combination with --thr.
+
+#### Transcript IDs file (--tr)
+
+The transcript IDs list (--tr) is simply a file with one transcript ID per row:
+```
+head -5 GRCh38.p12.prominent_isoforms_chr1.out
+ENST00000456328
+ENST00000417324
+ENST00000635159
+ENST00000445118
+ENST00000446136
+```
+The transcript IDs defined in this file are used for mapping the input genomic regions to transcript regions.
