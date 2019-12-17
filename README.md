@@ -30,5 +30,5 @@ CLIPcontext was implemented to work with and tested on human datasets retrieved 
 
 Here's how it works:
 
-<img src="doc/figures/gen_tr_context.png" alt="Site with genomic and transcript context"
+<img src="doc/gen_tr_context.png" alt="Site with genomic and transcript context"
 	title="Site with genomic and transcript context" width="700" />
