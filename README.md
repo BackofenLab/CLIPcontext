@@ -28,7 +28,7 @@ The following datasets need to be obtained for running CLIPcontext:
 - A BED file (6-column format) with genomic RBP binding regions (e.g. obtained from [ENCODE](https://www.encodeproject.org/))
 - A GTF file with genomic annotations from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
 - A transcript sequences FASTA file from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
-- A list of transcript IDs which defines the transcriptome to map to
+- A list of transcript IDs which defining the transcriptome to map to
 - A genome .2bit file for extracting genomic sequences (for hg38 assembly click [here](https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit))
 
 ### Test run
