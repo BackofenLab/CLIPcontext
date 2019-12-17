@@ -1,7 +1,11 @@
 # CLIPcontext
 CLIPcontext takes genomic RBP binding regions identified by CLIP-seq, maps them to the transcriptome, 
-and retrieves the region sequences with both genomic and transcript sequence context.
+and retrieves the region sequences with both genomic and transcript sequence context. Depending on the location of the binding regions, this leads to the extraction of different sequence contexts:
 
+<img src="doc/gen_tr_context.png" alt="Site with genomic and transcript context"
+	title="Site with genomic and transcript context" width="700" />
+
+(A) illustrates the usual way to extract CLIP-seq binding region sequences, after mapping of CLIP-seq reads to the genome and peak calling to identify the binding regions. The context sequence is obtained directly from the genome. In contrast, (B) shows the region mapped to the underlying transcript, from which CLIPcontext then takes its sequence to extract the (more authentic) transcript context.
 
 
 ## Installation
@@ -102,10 +106,47 @@ Optional arguments are provided for filtering the input .bed sites (--thr, --rev
 
 ### Algorithm description
 
+CLIPcontext maps genomic regions (--in) to a defined transcriptome (--tr) and outputs transcript and genomic region sequences. CLIPcontext performs mapping to the transcriptome for genomic sites that show considerable overlap with an exonic region (>= 90%, --min-exon-ol 0.9). 
+
+
+
+
+CLIPcontext performs mapping to the transcriptome for genomic sites that show considerable overlap with an exonic region (>= 90%, --min-exon-ol 0.9). 
+
+
+
+Consider a region overlapping with exons
+
+
+
+
+The idea of CLIPcontext is to get both the genomic and transcript sequence context for a given set of RBP binding regions (--in). It is based on the assumption that binding regions that map to exons (minimum overlap set by --min-exon-ol)
+
+
+
+
+
+    CLIPcontext maps genomic regions to a defined transcriptome and outputs 
+    transcript and genomic region sequences. 
+    
+    
+    Note that only regions
+    uniquely mapped to transcripts (i.e. in total one transcript hit) 
+    are reported. Moreover, the exon overlap of a genomic region has 
+    to be >= --min-exon-ovlp for the region to be reported. 
+    Both transcript and genomic region sequences are extracted by 
+    centering the input regions and extending them by --seq-ext. 
+    Transcript regions without full extension indicate their location 
+    near exon ends. By default transcript regions near exon borders 
+    are merged if they overlap after applying --merge-ext 
+    (i.e. for each overlapping set of sites select the site with the 
+    highest score). In case all overlapping sites should be merged, 
+    use --merge-all.
+
+
+
 Here's how it works:
 
-<img src="doc/gen_tr_context.png" alt="Site with genomic and transcript context"
-	title="Site with genomic and transcript context" width="700" />
 
 
 ### Dataset formats
@@ -134,4 +175,4 @@ ENST00000635159
 ENST00000445118
 ENST00000446136
 ```
-The transcript IDs defined in this file are used for mapping the input genomic regions to transcript regions.
+The transcript IDs defined in this file are used to define the transcript set onto which the genomic regions (--in) are mapped to.
