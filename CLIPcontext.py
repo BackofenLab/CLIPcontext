@@ -32,6 +32,29 @@ ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh3
 ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
 
 
+http://www.ensembl.org/info/data/ftp/index.html
+ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens
+
+Go here to get latest datasets:
+http://www.ensembl.org/info/data/ftp/index.html
+
+For testing:
+
+Store in data/
+cd data/
+wget ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
+wget ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz
+cat Homo_sapiens.GRCh38.cdna.all.fa.gz Homo_sapiens.GRCh38.ncrna.fa.gz > Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
+wget ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/Homo_sapiens.GRCh38.98.gtf.gz
+cd ..
+
+
+python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+
+
+
+
+
 cat Homo_sapiens.GRCh38.cdna.all.fa.gz Homo_sapiens.GRCh38.ncrna.fa.gz > Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
 
 python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
@@ -66,6 +89,12 @@ python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.
 python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
 
 python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+
+
+Download:
+
+
+
 GRCh38.p12.prominent_isoforms_chr1.out
 
 
