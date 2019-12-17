@@ -32,7 +32,7 @@ The following datasets need to be obtained for running CLIPcontext:
 - A genome .2bit file for extracting genomic sequences (for hg38 assembly click [here](https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit))
 
 ### Test run
-First download and store the datasets necessary for doing a test run in the data/ subfolder:
+First download and store the datasets necessary for conducting a test run in the data/ subfolder:
 ```
 cd data/
 wget https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
@@ -46,6 +46,7 @@ Now we can run CLIPcontext on the datasets stored in the data/ subfolder:
 ```
 python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen data/hg38.2bit
 ```
+CLIPcontext will output an overview of the files produced at the end of the run. For more details see the documentation section below.
 
 ## Documentation
 
