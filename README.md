@@ -202,3 +202,5 @@ ENST00000368300	chr1	156114710	156140081	+	ENSG00000160789LMNA	protein_coding	31
 ENST00000379370	chr1	1020119	1056116	+	ENSG00000188157	AGRN	protein_coding	7326	11	12	11	12
 ```
 
+Additional information includes the gene ID, gene name, gene biotype, transcript length, and the genomic region coordinates of the transcript. The different hit counts are: # complete (full-length matching) hits, # all hits (complete and incomplete), # unique (matching to one exon/transcript only) + complete hits, and # all unique hits.
+
