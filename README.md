@@ -10,7 +10,7 @@ and retrieves the region sequences with both genomic and transcript sequence con
 CLIPcontext essentially takes care of the following tasks:
 
 - Mapping of genomic RBP binding regions to underlying transcripts
-- Merge genomic regions adjacent to each other at exon borders (keep site with highest score)
+- Merge adjacent genomic regions at exon borders (keep site with highest score)
 - Extract both genomic and transcript context sequences for comparative analysis
 
 
@@ -112,95 +112,53 @@ Optional arguments are provided for filtering the input .bed sites (--thr, --rev
 
 ### Algorithm description
 
-CLIPcontext first reads in the transcript IDs (--tr), and extracts the corresponding sequences from the --fa FASTA file. Transcript IDs without corresponding sequence will be ignored, thus also genomic regions that map to these transcripts. 
-After the filtering the input sites (--in) by score or length, the full-length sites are mapped to the given set of transcripts. This is done to get regions at exon borders. Border regions are then merged 
+CLIPcontext first reads in the transcript IDs (--tr) and extracts the corresponding sequences from the --fa FASTA file. Transcript IDs without corresponding sequence will be ignored, thus also genomic regions that map to these transcripts. 
+After filtering the input sites (--in) by score or length, the full-length sites are mapped to the given set of transcripts. This is mainly done to identify regions at exon borders. CLIPcontext performs mapping to the transcriptome only for genomic sites that show considerable overlap with an exonic region (>= 90%, --min-exon-ol 0.9). Identified border regions are merged if they overlap after applying --merge-ext (i.e., for each overlapping set of sites select the site with the highest score). Merging is done since for RBPs that bind to exonic regions, peaks called at adjacent exon ends often originate from the same binding event. In case all overlapping sites should be merged (not only sites at exon borders), use --merge-all.
+Merged and uniquely mapped sites are then mapped again to the transcriptome, this time only taking their center positions for mapping. After center-position mapping, extension by --seq-ext is performed for both transcript sites and 
+genomic sites to get both transcript and genomic context sequences. Transcript regions without full extension indicate their location near exon ends.
+A number of sanity checks are performed throughout the script. For example, extracted transcript center position nucleotides are compared with genomic center position nucleotides.
 
-By default transcript regions near exon borders 
-    are merged if they overlap after applying --merge-ext 
-    (i.e. for each overlapping set of sites select the site with the 
-    highest score). In case all overlapping sites should be merged, 
-    use --merge-all.
+At the end of the run, CLIPcontext prints an overview with short discriptions for each output file:
 
-Filter
-Read in transcript IDs, get sequences 
+```
+....
 
+GENOMIC FILES
+=============
+Filtered genomic input sites .bed:
+test_out/genomic_sites.bed
+Filtered genomic input sites center positions .bed:
+test_out/genomic_sites.cp.bed
+Filtered genomic input sites extended .bed:
+test_out/genomic_sites.cp.ext.bed
+Filtered genomic input sites extended .fa:
+test_out/genomic_sites.cp.ext.fa
+Genomic exon regions .bed for all transcripts with hits:
+test_out/hit_transcript_exons.bed
 
+TRANSCRIPT SITES (FROM MAPPING OF FULL-LENGTH GENOMIC SITES)
+============================================================
+Complete matches on transcripts .bed:
+test_out/transcript_hits_complete.bed
+Incomplete matches on transcripts .bed:
+test_out/transcript_hits_incomplete.bed
+Unique complete matches on transcripts .bed:
+test_out/transcript_hits_complete_unique.bed
+All unique (complete + incomplete) matches on transcripts .bed:
+test_out/transcript_hits_complete_unique.bed
+Mapping statistics for all transcripts with hits:
+test_out/hit_transcript_stats.out
 
-
-Merge overlapping sites, keep only highest-scoring site for each set of 
-overlapping regions.
-By default, merging takes place only for sites near exon borders 
-(more precisely, sites that do not fully overlap with exons after 
-extending them by --merge-ext). However, if --merge-all is set, 
-merging will be done for all overlapping sites.
-
-
-Now map center position genomic sites to transcriptomes.
-Use only merged sites that uniquely mapped in the first step,
-with their IDs stored in ids2keep_dic. After center-position mapping,
-extension by --seq-ext will be done for both transcript sites and 
-genomic sites to get both transcript and genomic context sites.
-
-
-Get site ID / sequence ID combinations to keep.
-We need these since mapping center positions to transcriptome can result 
-in sites which mapped uniquely using their full lengths before, but with 
-center positions could map to more than one exon / transcript. This 
-is due to the intersectBed_f overlap parameter set to 0.9, which does not 
-report hits if they do not overlap 90%+ with exons, while for center 
-position mapping this is always satisfied.
-
-
-Next, do a sanity check and extract genomic context sequences.
-1) Sanity check:
-Compare extracted transcript center position nucleotides with
-with genomic center position nucleotides.
-2) Extract genomic sequences for given input regions,
-using up- and downstream extension used for transcript sequences.
-
-
-CLIPcontext maps genomic regions (--in) to a defined transcriptome (--tr) and outputs transcript and genomic region sequences. CLIPcontext performs mapping to the transcriptome for genomic sites that show considerable overlap with an exonic region (>= 90%, --min-exon-ol 0.9). 
-
-
-
-
-CLIPcontext performs mapping to the transcriptome for genomic sites that show considerable overlap with an exonic region (>= 90%, --min-exon-ol 0.9). 
-
-
-
-Consider a region overlapping with exons
-
-
-
-
-The idea of CLIPcontext is to get both the genomic and transcript sequence context for a given set of RBP binding regions (--in). It is based on the assumption that binding regions that map to exons (minimum overlap set by --min-exon-ol)
-
-
-
-
-
-    CLIPcontext maps genomic regions to a defined transcriptome and outputs 
-    transcript and genomic region sequences. 
-    
-    
-    Note that only regions
-    uniquely mapped to transcripts (i.e. in total one transcript hit) 
-    are reported. Moreover, the exon overlap of a genomic region has 
-    to be >= --min-exon-ovlp for the region to be reported. 
-    Both transcript and genomic region sequences are extracted by 
-    centering the input regions and extending them by --seq-ext. 
-    Transcript regions without full extension indicate their location 
-    near exon ends. By default transcript regions near exon borders 
-    are merged if they overlap after applying --merge-ext 
-    (i.e. for each overlapping set of sites select the site with the 
-    highest score). In case all overlapping sites should be merged, 
-    use --merge-all.
-
-
-
-Here's how it works:
-
-
+MERGED + EXTENDED TRANSCRIPT SITES
+==================================
+Up- and downstream context sequence extension: 30
+Unique matches on transcripts center positions .bed:
+test_out/transcript_sites.unique_hits.cp.bed
+Unique matches on transcripts center positions extended .bed:
+test_out/transcript_sites.unique_hits.cp.ext.bed
+Unique matches on transcripts center positions extended .fa:
+test_out/transcript_sites.unique_hits.cp.ext.fa
+```
 
 ### Dataset formats
 
