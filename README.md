@@ -208,8 +208,12 @@ Additional information includes the gene ID, gene name, gene biotype, transcript
 
 Additional data preprocessing scripts are available in the scripts/ subfolder:
 
-- bed_get_regions_near_exon_borders.py extracts binding regions near exon borders from a set of binding regions
-- gtf_extract_exon_regions extracts an exon regions BED file for a given list of transcript IDs
-- gtf_extract_most_prominent_transcripts.py extracts most prominent transcripts from a GTF file, producing a list of transcript IDs.
+
+Additional data preprocessing scripts are available in the scripts/ subfolder:
+
+- **bed_get_regions_near_exon_borders.py** extracts binding regions near exon borders from a set of binding regions
+- **gtf_extract_exon_regions.py** extracts an exon regions BED file for a given list of transcript IDs
+- **gtf_extract_most_prominent_transcripts.py** extracts most prominent transcripts from a GTF file, producing a list of transcript IDs.
+
 
 
