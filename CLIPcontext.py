@@ -23,83 +23,34 @@ twoBitToFa
 http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa
 
 
+REQUIRED DATASETS
+=================
+
+Currently only works with / tested on human datasets (hg38)
+
+.2bit:
 https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
-
-
-Homo_sapiens.GRCh38.98.chr.gtf.gz
-
-ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz
-ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
-
-
-http://www.ensembl.org/info/data/ftp/index.html
-ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens
-
-Go here to get latest datasets:
+Go here to get latest datasets (transcript FASTA, GTF):
 http://www.ensembl.org/info/data/ftp/index.html
 
-For testing:
 
-Store in data/
+EXAMPLE CALLS
+=============
+
 cd data/
+wget https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
 wget ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
 wget ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz
 cat Homo_sapiens.GRCh38.cdna.all.fa.gz Homo_sapiens.GRCh38.ncrna.fa.gz > Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
 wget ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/Homo_sapiens.GRCh38.98.gtf.gz
 cd ..
 
-
-python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
+python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen data/hg38.2bit
 
 
 
 
-cat Homo_sapiens.GRCh38.cdna.all.fa.gz Homo_sapiens.GRCh38.ncrna.fa.gz > Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
 
-python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
-Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
-
-python CLIPcontext.py -i 
-
--g /home/uhlm/Data/genome_2bit/hg38.2bit
--a /home/uhlm/Data/ensembl_data/Homo_sapiens.GRCh38.97.gtf.gz
-
--g /home/uhlm/Daten/genomes_2bit/hg38.2bit
--a /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.97.gtf.gz
--t GRCh38.p12.prominent_isoforms.out
-
-python CLIPcontext.py
--i data/SERBP1_K562.bed
--o test_out
--t data/GRCh38.p12.prominent_isoforms.out
--f data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
--a data/Homo_sapiens.GRCh38.97.gtf.gz
--g /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
-
-
-
-EXAMPLE CALLS
-=============
-
-python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.97.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
-python CLIPcontext.py --in data/SERBP1_K562.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
-python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.chr.gtf.gz --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
-
-Download:
-
-
-
-GRCh38.p12.prominent_isoforms_chr1.out
-
-
-TO DO:
-Script that returns near exon borders
 
 Add mapping count and list of transcript IDs per site ID
 
@@ -108,18 +59,7 @@ Option to extract most prominent isoforms from GTF file.
 generate transcript IDs file script,
 taking GTF and output list file (as input to CLIPcontext)
 
-NOTES for readme:
-Score per site to indicate its quality is required and used in merge operation.
 
-Other script should only output exon sites near borders
-
-Also output full length hits
-
-Do merging to get IDs which should be kept
-Then output full length hits and cp+ext hits .bed + .fa
-
-
-Make example with chr1 sites only and ENSTs from chromosome 1
 
 """
 
@@ -128,30 +68,15 @@ Make example with chr1 sites only and ENSTs from chromosome 1
 def setup_argument_parser():
     """Setup argparse parser."""
     help_description = """
-    CLIPcontext maps genomic regions to the transcriptome and outputs 
-    transcript and genomic region sequences. Note that only regions
-    uniquely mapped to transcripts (i.e. in total one transcript hit) 
-    are reported. Moreover, the exon overlap of a genomic region has 
-    to be >= --min-exon-ovlp for the region to be reported. 
-    Both transcript and genomic region sequences are extracted by 
-    centering the input regions and extending them by --seq-ext. 
-    Transcript regions without full extension indicate their location 
-    near exon ends. By default transcript regions near exon borders 
-    are merged if they overlap after applying --merge-ext 
-    (i.e. for each overlapping set of sites select the site with the 
-    highest score). In case all overlapping sites should be merged, 
-    use --merge-all.
+    CLIPcontext takes genomic RBP binding regions identified by CLIP-seq, 
+    maps them to the transcriptome, and retrieves the region sequences 
+    with both genomic and transcript sequence context.
     """
     # Define argument parser.
     p = argparse.ArgumentParser(add_help=False,
                                 prog="CLIPcontext.py",
-                                #usage="%(prog)s -i [input.bed] ... ",
                                 description=help_description,
                                 formatter_class=argparse.MetavarTypeHelpFormatter)
-                                # ArgumentDefaultsHelpFormatter
-                                # RawTextHelpFormatter
-                                # RawDescriptionHelpFormatter
-                                #MetavarTypeHelpFormatter
 
     # Argument groups.
     p_man = p.add_argument_group("REQUIRED ARGUMENTS")
@@ -202,6 +127,11 @@ def setup_argument_parser():
                    type = int,
                    default = False,
                    help = "Minimum input site length for filtering -i bed_file (default: False)")
+    p_opt.add_argument("--rev-filter",
+                   dest = "rev_filter",
+                   default = False,
+                   action = "store_true",
+                   help = "Reverse filtering (keep values <= threshold and prefer sites with smaller values) (default: false)")
     p_opt.add_argument("--max-len",
                    dest = "max_site_len",
                    type = int,
@@ -212,16 +142,6 @@ def setup_argument_parser():
                    type = float,
                    default = 0.9,
                    help = "Minimum exon overlap of a site to be reported as transcript hit (intersectBed -f parameter) (default: 0.9)")
-    p_opt.add_argument("--seq-ext",
-                   dest="us_ds_ext",
-                   type = int,
-                   default = 30,
-                   help = "Up- and downstream extension of centered sites for context sequence extraction (default: 30)")
-    p_opt.add_argument("--rev-filter",
-                   dest = "rev_filter",
-                   default = False,
-                   action = "store_true",
-                   help = "Reverse filtering (keep values <= threshold and prefer sites with smaller values) (default: false)")
     p_opt.add_argument("--merge-ext",
                    dest="merge_ext",
                    type = int,
@@ -232,6 +152,11 @@ def setup_argument_parser():
                    default = False,
                    action = "store_true",
                    help = "Merge all overlapping transcript sites extended by --merge-ext (default: only merge sites overlapping at exon borders) (default: False)")
+    p_opt.add_argument("--seq-ext",
+                   dest="us_ds_ext",
+                   type = int,
+                   default = 30,
+                   help = "Up- and downstream extension of centered sites for context sequence extraction (default: 30)")
     p_opt.add_argument("--gen-uniq-ids",
                    dest = "gen_uniq_ids",
                    default = False,

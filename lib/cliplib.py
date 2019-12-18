@@ -16,26 +16,20 @@ import os
 =====================
 
 
-
 Run doctests:
 
 python3 -m doctest cliplib.py
 
-For in_file out_file functions,
-check whether same files
 
+TO DO
+=====
 
 Add conservation score extraction, 
 taking whole genomic region or exon .bed file to reconstruct
 phastCons + phyloP have border effects
 
-Add negative generation function too, for the full bug!
-
-assert "first word lowercase"
-
-
-test output files into test_data/out
-out file always the same! Just expected files store
+Add negative generation function too, for the full bug
+Name convention for input output test files
 
 
 """
