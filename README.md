@@ -38,7 +38,7 @@ The following datasets need to be obtained for running CLIPcontext:
 - A BED file (6-column format) with genomic RBP binding regions (e.g. eCLIP CLIPper peak regions obtained from [ENCODE](https://www.encodeproject.org/))
 - A GTF file with genomic annotations from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
 - A transcript sequences FASTA file from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
-- A list of transcript IDs defining the transcriptome to map to
+- A list of transcript IDs defining the transcriptome to map to (from sequencing data or see additional scripts)
 - A genome .2bit file for extracting genomic sequences (for hg38 assembly click [here](https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit))
 
 ### Test run
@@ -215,5 +215,5 @@ This script extracts binding regions near exon borders from a set of input BED r
 This script creates an exon regions BED file for a given list of transcript IDs. For each input transcript ID the exon regions get extracted. You will need this BED file e.g. as an input file to **bed_get_regions_near_exon_borders.py**.
 
 #### gtf_extract_most_prominent_transcripts.py
-This script extracts the most prominent transcript for each gene from a GTF file, producing a list of transcript IDs. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. See the script help page for more details / extraction options. The most prominent transcript IDs output list can be used as input for CLIPcontext (--tr). 
+This script extracts the most prominent transcript for each gene from a GTF file, producing a list of transcript IDs. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. See the script help page for more details / extraction options. The most prominent transcript IDs output list can be used as input for CLIPcontext (--tr).
 
