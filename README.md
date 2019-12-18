@@ -204,3 +204,12 @@ ENST00000379370	chr1	1020119	1056116	+	ENSG00000188157	AGRN	protein_coding	7326	
 
 Additional information includes the gene ID, gene name, gene biotype, transcript length, and the genomic region coordinates of the transcript. The different hit counts are: # complete (full-length matching) hits, # all hits (complete and incomplete), # unique (matching to one exon/transcript only) + complete hits, and # all unique hits.
 
+### Data preprocessing scripts
+
+Additional data preprocessing scripts are available in the scripts/ subfolder:
+
+- bed_get_regions_near_exon_borders.py extracts binding regions near exon borders from a set of binding regions
+- gtf_extract_exon_regions extracts an exon regions BED file for a given list of transcript IDs
+- gtf_extract_most_prominent_transcripts.py extracts most prominent transcripts from a GTF file, producing a list of transcript IDs.
+
+
