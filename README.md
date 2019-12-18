@@ -211,9 +211,13 @@ Additional data preprocessing scripts are available in the scripts/ subfolder:
 
 Additional data preprocessing scripts are available in the scripts/ subfolder:
 
-- **bed_get_regions_near_exon_borders.py** extracts binding regions near exon borders from a set of binding regions
-- **gtf_extract_exon_regions.py** extracts an exon regions BED file for a given list of transcript IDs
-- **gtf_extract_most_prominent_transcripts.py** extracts most prominent transcripts from a GTF file, producing a list of transcript IDs.
+#### bed_get_regions_near_exon_borders.py
+This script extracts binding regions near exon borders from a set of binding regions. It can be used to create an input dataset for CLIPcontext, focussing only on regions near exon borders for further analysis.
 
 
+#### gtf_extract_exon_regions.py
+This script creates an exon regions BED file for a given list of transcript IDs. For each input transcript ID the exon regions get extracted. You will need this BED file e.g. as an input file to **bed_get_regions_near_exon_borders.py**.
+
+#### gtf_extract_most_prominent_transcripts.py
+This script extracts the most prominent transcripts from a GTF file, producing a list of transcript IDs. Most prominent here is defined as the transcript that is part of the gencode basic dataset + having the highest transcript support level.  See the script help page for more details / extraction options. The most prominent transcripts output list can be used as input for CLIPcontext. 
 
