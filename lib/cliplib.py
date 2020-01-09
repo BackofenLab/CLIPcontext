@@ -43,6 +43,36 @@ def is_tool(name):
 
 ################################################################################
 
+def dir_get_files(file_dir,
+                  file_ending=False):
+    """
+    Return list of files from given directory file_dir.
+    E.g. file_ending="bed" to filter for .bed files.
+    
+    >>> test_dir = "test_data"
+    >>> dir_get_files(test_dir, file_ending="profile")
+    ['test2.profile', 'test.profile']
+
+    """
+
+    from os import listdir
+    from os.path import isfile, join
+    dir_files = [f for f in listdir(file_dir) if isfile(join(file_dir, f))]
+    assert dir_files, "ERROR: given directory \"%s\" contains no files" %(file_dir)
+    # If filter for file ending true.
+    if file_ending:
+        new_files = []
+        for df in dir_files:
+            if re.search(".+\.%s" %(file_ending), df):
+                new_files.append(df)
+        assert new_files, "ERROR: no files left after filtering by file ending \"%s\"" %(file_ending)
+        return new_files
+    else:
+        return dir_files
+
+
+################################################################################
+
 def bed_check_six_col_format(bed_file):
     """
     Check whether given .bed file has 6 columns.

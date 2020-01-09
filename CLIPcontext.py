@@ -199,7 +199,7 @@ if __name__ == '__main__':
         print("ERROR: input .fa file \"%s\" not found" %(args.in_fasta))
     if not os.path.exists(args.in_tr_list):
         print("ERROR: input transcript ID list file \"%s\" not found" %(args.in_tr_list))
-    if not os.path.exists(args.in_gtf):
+    if not os.path.exists(args.in_genome_2bit):
         print("ERROR: input .2bit file \"%s\" not found" %(args.in_genome_2bit))
     # Check .bed for content.
     c_in_sites = cliplib.count_file_rows(args.in_bed)
