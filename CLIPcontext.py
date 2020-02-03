@@ -48,19 +48,6 @@ cd ..
 python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen data/hg38.2bit
 
 
-
-
-
-
-Add mapping count and list of transcript IDs per site ID
-
-Supply a script that selects most prominent transcripts from .gtf file.
-Option to extract most prominent isoforms from GTF file.
-generate transcript IDs file script,
-taking GTF and output list file (as input to CLIPcontext)
-
-
-
 """
 
 ################################################################################
