@@ -11,25 +11,21 @@ import re
 import os
 
 """
-=====================
-  OPEN FOR BUSINESS
-=====================
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~ OPEN FOR BUSINESS ~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-Run doctests:
+AuthoR: uhlm [at] informatik.uni-freiburg.de
+
+
+~~~~~~~~~~~~~
+Run doctests
+~~~~~~~~~~~~~
 
 python3 -m doctest cliplib.py
 
-
-TO DO
-=====
-
-Add conservation score extraction, 
-taking whole genomic region or exon .bed file to reconstruct
-phastCons + phyloP have border effects
-
-Add negative generation function too, for the full bug
-Name convention for input output test files
 
 
 """
@@ -351,8 +347,8 @@ def bed_read_rows_into_dic(in_bed,
     """
     Read in .bed file rows into dictionary.
     Mapping is region ID -> bed row.
-    two_ids_dic : dictionary with site ID -> sequence ID, used for filtering sites.
-                  Thus, row has to have both site and sequence ID to be kept.
+    two_ids_dic  : dictionary with site ID -> sequence ID, used for filtering sites.
+                   Thus, row has to have both site and sequence ID to be kept.
 
     >>> test_bed = "test_data/test4.bed"
     >>> bed_read_rows_into_dic(test_bed)
@@ -997,7 +993,7 @@ def list_extract_peaks(in_list,
                        coords="list",
                        sc_thr=0):
     """
-    Extract peak regions from list. 
+    Extract peak regions from list.
     Peak region is defined as region >= score threshold.
     
     coords=bed  :  peak start 0-based, peak end 1-based.
@@ -1594,6 +1590,279 @@ def diff_two_files_identical(file1, file2):
 
 ################################################################################
 
+def bed_get_incomplete_overlaps(site_bed, region_bed, out_bed):
+    """
+    Overlap sites .bed with regions .bed, and return .bed file containing 
+    only incomplete (not full length matching) sites .bed.
+
+    """
+
+    # intersect with -f 1
+    intersect_params = "-s -f 1 -v"
+    intersect_bed_files(site_bed, region_bed, intersect_params, out_bed)
+
+
+################################################################################
+
+def bed_read_ids_into_dic(in_bed):
+    """
+    Read in .bed file IDs (column 4) into dictionary.
+
+    >>> test_bed = "test_data/test4.bed"
+    >>> bed_read_ids_into_dic(test_bed)
+    {'CLIP1': 1, 'CLIP2': 1}
+
+    """
+    ids_dic = {}
+    with open(in_bed) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            site_id = cols[3]
+            ids_dic[site_id] = 1
+    f.closed
+    assert ids_dic, "No IDs read into dictionary (input file \"%s\" empty or malformatted?)" % (in_bed)
+    return ids_dic
+
+
+################################################################################
+
+def bed_count_region_overlaps(site_bed, region_bed, overlap_out,
+                              only_incomplete=False,
+                              intersectBed_f=False):
+    """
+    Overlap sites with regions, and return number of sites overlapping for 
+    each region. Also return the list of site IDs for each region.
+    only_incomplete : If True, count only incompletely overlapping sites.
+
+    >>> site_bed = "test_data/overlap_sites_in.bed"
+    >>> region_bed = "test_data/overlap_regions_in.bed"
+    >>> overlap_out = "test_data/intersectbed.overlap.tmp.bed"
+    >>> bed_count_region_overlaps(site_bed, region_bed, overlap_out)
+    ({'i1': 2, 'i2': 2}, {'i1': ['CLIP1', 'CLIP2'], 'i2': ['CLIP3', 'CLIP4']})
+
+    """
+    # Intersect.
+    intersect_params = "-s -wb" # Any overlaps okay.
+    if intersectBed_f:
+        intersect_params = "-s -wb -f %f" %(intersectBed_f)
+    intersect_bed_files(site_bed, region_bed, intersect_params, overlap_out)
+    # If only_incomplete, first read in site lengths.
+    site_len_dic = {}
+    if only_incomplete:
+        site_len_dic = bed_get_region_lengths(site_bed)
+    c_all = 0
+    reg_olc_dic = {}
+    reg_site_ids_dic = {}
+    # Read in overlaps.
+    with open(overlap_out) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            site_match_s = int(cols[1])
+            site_match_e = int(cols[2])
+            site_id = cols[3]
+            reg_id = cols[9]
+            if only_incomplete:
+                site_match_l = site_match_e - site_match_s
+                if site_match_l == site_len_dic[site_id]:
+                    continue
+            c_all += 1
+            if reg_id in reg_olc_dic:
+                reg_olc_dic[reg_id] += 1
+            else:
+                reg_olc_dic[reg_id] = 1
+            if reg_id in reg_site_ids_dic:
+                reg_site_ids_dic[reg_id].append(site_id)
+            else:
+                reg_site_ids_dic[reg_id] = [site_id]
+    f.close()
+    assert c_all, "ERROR: no overlapping sites when overlapping \"%s\" with \"%s\"" %(site_bed, region_bed)
+    return reg_olc_dic, reg_site_ids_dic
+
+
+################################################################################
+
+def gtf_extract_exon_bed(in_gtf, out_bed,
+                         out_intron_bed=False,
+                         tr_ids_dic=False):
+    """
+    Given a .gtf file with exon features, extract exon regions and store in 
+    .bed file. Optionally, a dictionary of transcript IDs can be provided, 
+    meaning that only exon regions from the given transcripts will be extracted.
+    If out_intron_bed is set, an intronic regions .bed file will also be 
+    extracted, based on the exonic regions .bed information.
+    
+    Output .bed will look like this (note column 4 ID format with transcript 
+    ID followed by _e+exon_number):
+    chr1	1000	2000	ENST001_e1	0	+
+    chr1	3000	4000	ENST001_e2	0	+
+    chr1	8000	9000	ENST002_e1	0	-
+    chr1	6000	7000	ENST002_e2	0	-
+    ...
+
+    NOTE that function has been tested with .gtf files from Ensembl. .gtf files
+    from different sources sometimes have a slightly different format, which 
+    could lead to incompatibilities / errors. See test files for format that 
+    works.
+
+    Some tested Ensembl GTF files:
+    Homo_sapiens.GRCh38.97.gtf.gz
+    Mus_musculus.GRCm38.81.gtf.gz
+    Mus_musculus.GRCm38.79.gtf.gz
+
+    >>> in_gtf = "test_data/map_test_in.gtf"
+    >>> exp_out_bed = "test_data/gtf_exon_out_exp.bed"
+    >>> exp_out_intron_bed = "test_data/gtf_intron_out_exp.bed"
+    >>> out_bed = "test_data/gtf_exon_out.bed"
+    >>> out_intron_bed = "test_data/gtf_intron_out.bed"
+    >>> gtf_extract_exon_bed(in_gtf, out_bed, out_intron_bed=out_intron_bed)
+    >>> diff_two_files_identical(out_bed, exp_out_bed)
+    True
+    >>> diff_two_files_identical(out_intron_bed, exp_out_intron_bed)
+    True
+
+    """
+
+    # Output genomic exon regions.
+    OUTBED = open(out_bed, "w")
+
+    # Read in exon features from GTF file.
+    c_gtf_ex_feat = 0
+    # Start end coordinates of exons.
+    exon_e_dic = {}
+    exon_s_dic = {}
+    # Transcript stats.
+    tr2pol_dic = {}
+    tr2chr_dic = {}
+    # dic for sanity checking exon number order.
+    tr2exon_nr_dic = {}
+
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else: 
+        f = open(in_gtf, "r")
+    for line in f:
+        # Skip header.
+        if re.search("^#", line):
+            continue
+        cols = line.strip().split("\t")
+        chr_id = cols[0]
+        feature = cols[2]
+        feat_s = int(cols[3])
+        feat_e = int(cols[4])
+        feat_pol = cols[6]
+        infos = cols[8]
+        if not feature == "exon":
+            continue
+
+        # Restrict to standard chromosomes.
+        if re.search("^chr", chr_id):
+            if not re.search("^chr[\dMXY]", chr_id):
+                continue
+        else:
+            # Convert to "chr" IDs.
+            if not re.search("^[\dMXY]", chr_id):
+                continue
+            if chr_id == "MT":
+                chr_id == "M"
+            chr_id = "chr" + chr_id
+
+        # Make start coordinate 0-base (BED standard).
+        feat_s = feat_s - 1
+
+        # Extract transcript ID.
+        m = re.search('transcript_id "(.+?)"', infos)
+        assert m, "transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        transcript_id = m.group(1)
+        # Extract exon number.
+        m = re.search('exon_number "(\d+?)"', infos)
+        assert m, "exon_number entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        exon_nr = int(m.group(1))
+
+        # Check if transcript ID is in transcript dic.
+        if tr_ids_dic:
+            if not transcript_id in tr_ids_dic:
+                continue
+
+        # Store transcript stats.
+        tr2pol_dic[transcript_id] = feat_pol
+        tr2chr_dic[transcript_id] = chr_id
+
+        # Check whether exon numbers are incrementing for each transcript ID.
+        if not transcript_id in tr2exon_nr_dic:
+            tr2exon_nr_dic[transcript_id] = exon_nr
+        else:
+            assert tr2exon_nr_dic[transcript_id] < exon_nr, "transcript ID \"%s\" without increasing exon number order in GTF file \"%s\"" %(transcript_id, in_gtf)
+            tr2exon_nr_dic[transcript_id] = exon_nr
+
+        # Count exon entry.
+        c_gtf_ex_feat += 1
+        
+        # Construct exon ID.
+        exon_id = transcript_id + "_e" + str(exon_nr)
+        # Store infos.
+        exon_s_dic[exon_id] = feat_s
+        exon_e_dic[exon_id] = feat_e
+
+        # Output genomic exon region.
+        OUTBED.write("%s\t%i\t%i\t%s\t0\t%s\n" % (chr_id,feat_s,feat_e,exon_id,feat_pol))
+
+    OUTBED.close()
+    f.close()
+
+    # Check for read-in features.
+    assert c_gtf_ex_feat, "no exon features read in from \"%s\"" %(in_gtf)
+
+    # Output intron .bed.
+    if out_intron_bed:
+        tr2intron_nr_dic = {}
+        OUTBED = open(out_intron_bed, "w")
+        for tr_id in tr2pol_dic:
+            tr_pol = tr2pol_dic[tr_id]
+            chr_id = tr2chr_dic[tr_id]
+            tr_c = tr2exon_nr_dic[tr_id]
+            intron_c = 0
+            tr2intron_nr_dic[tr_id] = 0
+            # 1-exon transcripts, no introns.
+            if tr_c == 1:
+                continue
+            ex_list = []
+            for i in range(tr_c):
+                ex_nr = i + 1
+                ex_id = tr_id + "_e" + str(ex_nr)
+                ex_list.append(ex_id)
+            for i in range(len(ex_list)):
+                ex1i = i
+                ex2i = i + 1
+                # At last exon, no more introns to add.
+                if ex2i == len(ex_list):
+                    break
+                ex1id = ex_list[ex1i]
+                ex2id = ex_list[ex2i]
+                ex1s = exon_s_dic[ex1id]
+                ex2s = exon_s_dic[ex2id]
+                ex1e = exon_e_dic[ex1id]
+                ex2e = exon_e_dic[ex2id]
+                # Plus case.
+                intron_s = ex1e
+                intron_e = ex2s
+                if tr_pol == "-":
+                    intron_s = ex2e
+                    intron_e = ex1s
+                intron_id = tr_id + "_i" + str(ex2i)
+                intron_c += 1
+                OUTBED.write("%s\t%i\t%i\t%s\t0\t%s\n" % (chr_id,intron_s,intron_e,intron_id,tr_pol))
+            tr2intron_nr_dic[tr_id] = intron_c
+        OUTBED.close()
+        # Sanity check exon + intron numbers.
+        for tr_id in tr2exon_nr_dic:
+            exon_nr = tr2exon_nr_dic[tr_id]
+            intron_nr = tr2intron_nr_dic[tr_id]
+            assert (exon_nr-1) == intron_nr, "ERROR: intron number != exon number - 1 for \"%s\" (%i != %i - 1)" %(tr_id, intron_nr, exon_nr)
+
+
+################################################################################
+
 def convert_genome_positions_to_transcriptome(in_bed, out_folder,
                                               in_gtf, tr_ids_dic,
                                               intersectBed_f=1,
@@ -1765,17 +2034,17 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
             tr2exon_nr_dic[transcript_id] = exon_nr
 
         # Make exon count 3-digit.
-        add = ""
-        if exon_nr < 10:
-            add = "00"
-        if exon_nr >= 10 and exon_nr < 100:
-            add = "0"
+        #add = ""
+        #if exon_nr < 10:
+        #    add = "00"
+        #if exon_nr >= 10 and exon_nr < 100:
+        #    add = "0"
 
         # Count exon entry.
         c_gtf_ex_feat += 1
         
         # Construct exon ID.
-        exon_id = transcript_id + "_e" + add + str(exon_nr)
+        exon_id = transcript_id + "_e" + str(exon_nr)
 
         # Store more infos.
         tr2gene_name_dic[transcript_id] = gene_name
@@ -1804,7 +2073,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     # Check for read-in features.
     assert c_gtf_ex_feat, "no exon features read in from \"%s\"" %(in_gtf)
 
-    # Output genomic exon regions.
+    # Output transcript exon regions.
     OUTBED = open(transcript_exon_bed, "w")
     tr_exon_starts_dic = {}
 

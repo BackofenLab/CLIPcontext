@@ -272,15 +272,13 @@ if __name__ == '__main__':
         del tr_ids_dic[seq_id]
 
     # Filter sites by threshold.
-    if args.score_thr is not None:
-        cliplib.bed_process_bed_file(args.in_bed, filt_in_bed,
-                                     score_thr=args.score_thr,
-                                     min_len=args.min_len,
-                                     max_len=args.max_len,
-                                     generate_unique_ids=args.gen_uniq_ids,
-                                     rev_filter=args.rev_filter)
-    else:
-        cliplib.make_file_copy(args.in_bed, filt_in_bed)
+    cliplib.bed_process_bed_file(args.in_bed, filt_in_bed,
+                                 score_thr=args.score_thr,
+                                 min_len=args.min_site_len,
+                                 max_len=args.max_site_len,
+                                 generate_unique_ids=args.gen_uniq_ids,
+                                 rev_filter=args.rev_filter)
+    # cliplib.make_file_copy(args.in_bed, filt_in_bed)
 
     # Number of remaining sites.
     c_filt_sites = cliplib.count_file_rows(filt_in_bed)
