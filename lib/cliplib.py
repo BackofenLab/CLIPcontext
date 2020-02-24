@@ -44,7 +44,7 @@ def dir_get_files(file_dir,
     """
     Return list of files from given directory file_dir.
     E.g. file_ending="bed" to filter for .bed files.
-    
+
     >>> test_dir = "test_data"
     >>> dir_get_files(test_dir, file_ending="profile")
     ['test2.profile', 'test.profile']
@@ -97,9 +97,9 @@ def bed_check_six_col_format(bed_file):
 
 def bed_check_unique_ids(bed_file):
     """
-    Check whether .bed file (6 column format with IDs in column 4) 
+    Check whether .bed file (6 column format with IDs in column 4)
     has unique column 4 IDs.
-    
+
     >>> test_bed = "test_data/test1.bed"
     >>> bed_check_unique_ids(test_bed)
     True
@@ -124,7 +124,7 @@ def bed_get_length_stats(bed_file):
     Get length statistics for a .bed file.
     Return dictionary with following keys:
     min, max, mean, median, mode, stdev
-    
+
     >>> test_bed = "test_data/test1.bed"
     >>> stats_dic = bed_get_length_stats(test_bed)
     >>> stats_dic["size"]
@@ -171,7 +171,7 @@ def bed_get_length_stats(bed_file):
 
 def bed_get_region_id_scores(in_bed_file):
     """
-    Read in .bed file, and store scores for each region in dictionary 
+    Read in .bed file, and store scores for each region in dictionary
     (unique column 4 ID and column 5 score have to be present).
     Return dictionary with mappings region ID -> region score
 
@@ -196,7 +196,7 @@ def bed_get_region_id_scores(in_bed_file):
 
 def bed_map_region_id_to_seq_id(in_bed_file):
     """
-    Read in .bed file, and store for each region ID (column 4) the sequence 
+    Read in .bed file, and store for each region ID (column 4) the sequence
     ID (column 1)
     Return dictionary with mappings region ID -> sequence ID
 
@@ -240,7 +240,7 @@ def bed_process_bed_file(in_bed_file, out_bed_file,
     - Option to reverse-filter scores (the lower score the better)
     - Center regions (center_sites=True)
     - Extend sites up- downstream (ext_lr=value)
-    - Generate new region IDs (column 4, generate_unique_ids=True), 
+    - Generate new region IDs (column 4, generate_unique_ids=True),
       optionally providing an id_prefix
     - Filter by given dictionary of region IDs (ids2keep_dic)
     - Print "0" scores to column 5 (zero_scores)
@@ -424,7 +424,7 @@ def extract_transcript_sequences(bed_dic, seq_dic,
                                  ext_lr=False,
                                  full_hits_only=False):
     """
-    Given a dictionary with bed regions (region ID -> BED row) and a 
+    Given a dictionary with bed regions (region ID -> BED row) and a
     sequence dictionary (Sequence ID -> sequence), extract the BED region
     sequences and return in new dictionary (region ID -> region sequence).
     Optionally, extend regions by ext_lr nt (up- and downstream).
@@ -437,7 +437,7 @@ def extract_transcript_sequences(bed_dic, seq_dic,
     {'S1': 'AACCCCGG', 'S2': 'ACACAG'}
     >>> extract_transcript_sequences(bed_dic, seq_dic, ext_lr=5, full_hits_only=True)
     {'S2': 'TATACACAGAGC'}
-    
+
     """
     id2seq_dic = {}
     # Process .bed regions.
@@ -479,7 +479,7 @@ def extract_transcript_sequences(bed_dic, seq_dic,
 
 def output_seqs_dic_to_fasta(seqs_dic, out_fa):
     """
-    Output a dictionary of FASTA sequences (FASTA ID -> sequence) to FASTA 
+    Output a dictionary of FASTA sequences (FASTA ID -> sequence) to FASTA
     file.
 
     """
@@ -495,7 +495,7 @@ def output_seqs_dic_to_fasta(seqs_dic, out_fa):
 def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit):
     """
     Extract sequences from genome (provide genome .2bit file).
-    twoBitToFa executable needs to be in PATH. Store extracted 
+    twoBitToFa executable needs to be in PATH. Store extracted
     sequences in out_fa.
 
     """
@@ -515,7 +515,7 @@ def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit):
 
 def get_center_position(start, end):
     """
-    Get center position (1-based), given a (genomic) start (0-based) and 
+    Get center position (1-based), given a (genomic) start (0-based) and
     end coordinate (1-based).
 
     >>> get_center_position(10, 11)
@@ -539,7 +539,7 @@ def get_center_position(start, end):
 def count_file_rows(in_file):
     """
     Count number of file rows for given input file.
-    
+
     >>> test_file = "test_data/test1.bed"
     >>> count_file_rows(test_file)
     7
@@ -579,10 +579,10 @@ def bed_sort_file(in_bed, out_bed,
 def bed_merge_file(in_bed, out_bed,
                    custom_params_str=False):
     """
-    Use mergeBed from bedtools to merge overlapping .bed entries, storing 
-    the region IDs to later pick one region for each set of overlapping 
+    Use mergeBed from bedtools to merge overlapping .bed entries, storing
+    the region IDs to later pick one region for each set of overlapping
     regions.
-    
+
     """
     # Check for bedtools.
     assert is_tool("bedtools"), "bedtools not in PATH"
@@ -602,7 +602,7 @@ def bed_merge_file(in_bed, out_bed,
 
 def graphprot_predictions_read_in_ids(predictions_file):
     """
-    Given a GraphProt .predictions file, read in column 1 IDs in order 
+    Given a GraphProt .predictions file, read in column 1 IDs in order
     appearing in file, and store in list.
 
     >>> test_file = "test_data/test.predictions"
@@ -624,7 +624,7 @@ def graphprot_predictions_read_in_ids(predictions_file):
 
 def fasta_read_in_ids(fasta_file):
     """
-    Given a .fa file, read in header IDs in order appearing in file, 
+    Given a .fa file, read in header IDs in order appearing in file,
     and store in list.
 
     >>> test_file = "test_data/test3.fa"
@@ -650,7 +650,7 @@ def graphprot_profile_extract_peak_regions(in_file, out_file,
                                            sc_thr=0):
     """
     Extract peak regions from GraphProt .profile file.
-    Store the peak regions (defined as regions with scores >= sc_thr) 
+    Store the peak regions (defined as regions with scores >= sc_thr)
     as to out_file in 6-column .bed.
 
     TODO:
@@ -702,7 +702,7 @@ def graphprot_profile_extract_peak_regions(in_file, out_file,
                 # Process old id scores.
                 if scores_list:
                     # Extract peaks from region.
-                    peak_list = list_extract_peaks(scores_list, 
+                    peak_list = list_extract_peaks(scores_list,
                                                    max_merge_dist=max_merge_dist,
                                                    coords="bed",
                                                    sc_thr=sc_thr)
@@ -724,7 +724,7 @@ def graphprot_profile_extract_peak_regions(in_file, out_file,
     # Process last block.
     if scores_list:
         # Extract peaks from region.
-        peak_list = list_extract_peaks(scores_list, 
+        peak_list = list_extract_peaks(scores_list,
                                        max_merge_dist=max_merge_dist,
                                        coords="bed",
                                        sc_thr=sc_thr)
@@ -742,7 +742,7 @@ def graphprot_profile_extract_peak_regions(in_file, out_file,
 
 def bed_peaks_to_genomic_peaks(peak_file, genomic_peak_file, genomic_sites_bed):
     """
-    Given a .bed file of sequence peak regions (possible coordinates from 
+    Given a .bed file of sequence peak regions (possible coordinates from
     0 to length of s), convert peak coordinates to genomic coordinates.
     Do this by taking genomic regions of sequences as input.
 
@@ -806,12 +806,12 @@ def graphprot_profile_calculate_avg_profile(in_file, out_file,
                                             seq_ids_list=False,
                                             method=1):
     """
-    Given a GraphProt .profile file, calculate average profiles and output 
+    Given a GraphProt .profile file, calculate average profiles and output
     average profile file.
-    Average profile means that the position-wise scores will get smoothed 
-    out by calculating for each position a new score, taking a sequence 
-    window -ap_extlr to +ap_extlr relative to the position 
-    and calculate the mean score over this window. The mean score then 
+    Average profile means that the position-wise scores will get smoothed
+    out by calculating for each position a new score, taking a sequence
+    window -ap_extlr to +ap_extlr relative to the position
+    and calculate the mean score over this window. The mean score then
     becomes the new average profile score at this position.
     Two different implementations of the task are given:
     method=1 (new python implementation, slower + more memory but easy to read)
@@ -936,20 +936,20 @@ def graphprot_profile_get_top_scores_median(profile_file,
                                             avg_profile_extlr=5):
 
     """
-    Given a GraphProt .profile file, extract for each site (identified by 
-    column 1 ID) the top (= highest) score. Then return the median of these 
+    Given a GraphProt .profile file, extract for each site (identified by
+    column 1 ID) the top (= highest) score. Then return the median of these
     top scores.
-    
+
     profile_type can be either "profile" or "avg_profile".
-    "avg_profile means that the position-wise scores will first get smoothed 
-    out by calculating for each position a new score through taking a 
-    sequence window -avg_profile_extlr to +avg_profile_extlr of the position 
+    "avg_profile means that the position-wise scores will first get smoothed
+    out by calculating for each position a new score through taking a
+    sequence window -avg_profile_extlr to +avg_profile_extlr of the position
     and calculate the mean score over this window and assign it to the position.
-    After that, the maximum score of each site is chosen, and the median over 
+    After that, the maximum score of each site is chosen, and the median over
     all maximum scores is returned.
-    "profile" leaves the position-wise scores as they are, directly extracting 
+    "profile" leaves the position-wise scores as they are, directly extracting
     the maximum for each site and then reporting the median.
-    
+
     >>> test_file = "test_data/test.profile"
     >>> graphprot_profile_get_top_scores_median(test_file)
     3.2
@@ -995,10 +995,10 @@ def list_extract_peaks(in_list,
     """
     Extract peak regions from list.
     Peak region is defined as region >= score threshold.
-    
+
     coords=bed  :  peak start 0-based, peak end 1-based.
     coords=list :  peak start 0-based, peak end 0-based.
-    
+
     >>> test_list = [-1, 0, 2, 4.5, 1, -1, 5, 6.5]
     >>> list_extract_peaks(test_list)
     [[1, 4, 3, 4.5], [6, 7, 7, 6.5]]
@@ -1103,13 +1103,13 @@ def list_extract_peaks(in_list,
 
 ################################################################################
 
-def list_moving_window_average_values(in_list, 
+def list_moving_window_average_values(in_list,
                                       win_extlr=5,
                                       method=1):
     """
-    Take a list of numeric values, and calculate for each position a new value, 
-    by taking the mean value of the window of positions -win_extlr and 
-    +win_extlr. If full extension is not possible (at list ends), it just 
+    Take a list of numeric values, and calculate for each position a new value,
+    by taking the mean value of the window of positions -win_extlr and
+    +win_extlr. If full extension is not possible (at list ends), it just
     takes what it gets.
     Two implementations of the task are given, chose by method=1 or method=2.
 
@@ -1157,9 +1157,9 @@ def list_moving_window_average_values(in_list,
 
 def seqs_dic_count_uc_nts(seqs_dic):
     """
-    Count number of uppercase nucleotides in sequences stored in sequence 
+    Count number of uppercase nucleotides in sequences stored in sequence
     dictionary.
-    
+
     >>> seqs_dic = {'seq1': "acgtACGTacgt", 'seq2': 'acgtACacgt'}
     >>> seqs_dic_count_uc_nts(seqs_dic)
     6
@@ -1179,9 +1179,9 @@ def seqs_dic_count_uc_nts(seqs_dic):
 
 def seqs_dic_count_lc_nts(seqs_dic):
     """
-    Count number of lowercase nucleotides in sequences stored in sequence 
+    Count number of lowercase nucleotides in sequences stored in sequence
     dictionary.
-    
+
     >>> seqs_dic = {'seq1': "gtACGTac", 'seq2': 'cgtACacg'}
     >>> seqs_dic_count_lc_nts(seqs_dic)
     10
@@ -1201,7 +1201,7 @@ def seqs_dic_count_lc_nts(seqs_dic):
 
 def graphprot_predictions_get_median(predictions_file):
     """
-    Given a GraphProt .predictions file, read in site scores and return 
+    Given a GraphProt .predictions file, read in site scores and return
     the median value.
 
     >>> test_file = "test_data/test.predictions"
@@ -1322,9 +1322,9 @@ def bed_merge_file_select_top_ids(in_merged_bed, id2sc_dic,
                                   rev_filter=False):
     """
     Given a merged .bed file (using mergeBed or bed_merge_file() ),
-    select the top scoring region IDs from the merged file, where in case 
+    select the top scoring region IDs from the merged file, where in case
     of overlaps the best scoring region ID is picked.
-    rev_filter=True leads to lower scores regarded as better, e.g. in case 
+    rev_filter=True leads to lower scores regarded as better, e.g. in case
     of p-values.
 
     >>> test_merged = "test_data/test.sorted.merged.bed"
@@ -1437,7 +1437,7 @@ def random_order_dic_keys_into_list(in_dic):
 
 ################################################################################
 
-def split_fasta_into_test_train_files(in_fasta, test_out_fa, train_out_fa, 
+def split_fasta_into_test_train_files(in_fasta, test_out_fa, train_out_fa,
                                       test_size=500):
     """
     Split in_fasta .fa file into two files (e.g. test, train).
@@ -1474,9 +1474,9 @@ def read_fasta_into_dic(fasta_file,
                         convert_to_uc=False,
                         skip_n_seqs=True):
     """
-    Read in FASTA sequences, convert to RNA, store in dictionary 
+    Read in FASTA sequences, convert to RNA, store in dictionary
     and return dictionary.
-    
+
     >>> test_fasta = "test_data/test.fa"
     >>> read_fasta_into_dic(test_fasta)
     {'seq1': 'acguACGUacgu', 'seq2': 'ugcaUGCAugcaACGUacgu'}
@@ -1496,7 +1496,7 @@ def read_fasta_into_dic(fasta_file,
     # Go through FASTA file, extract sequences.
     if re.search(".+\.gz$", fasta_file):
         f = gzip.open(fasta_file, 'rt')
-    else: 
+    else:
         f = open(fasta_file, "r")
     for line in f:
         if re.search(">.+", line):
@@ -1541,7 +1541,7 @@ def read_fasta_into_dic(fasta_file,
 def generate_random_fn(file_ending):
     """
     Generate a random file name for temporary files.
-    
+
     """
     random_id = uuid.uuid1()
     random_fn = str(random_id) + ".tmp." . file_ending
@@ -1568,9 +1568,9 @@ def make_file_copy(in_file, out_file):
 
 def diff_two_files_identical(file1, file2):
     """
-    Check whether two files are identical. Return true if diff reports no 
+    Check whether two files are identical. Return true if diff reports no
     differences.
-    
+
     >>> file1 = "test_data/file1"
     >>> file2 = "test_data/file2"
     >>> diff_two_files_identical(file1, file2)
@@ -1592,7 +1592,7 @@ def diff_two_files_identical(file1, file2):
 
 def bed_get_incomplete_overlaps(site_bed, region_bed, out_bed):
     """
-    Overlap sites .bed with regions .bed, and return .bed file containing 
+    Overlap sites .bed with regions .bed, and return .bed file containing
     only incomplete (not full length matching) sites .bed.
 
     """
@@ -1630,7 +1630,7 @@ def bed_count_region_overlaps(site_bed, region_bed, overlap_out,
                               only_incomplete=False,
                               intersectBed_f=False):
     """
-    Overlap sites with regions, and return number of sites overlapping for 
+    Overlap sites with regions, and return number of sites overlapping for
     each region. Also return the list of site IDs for each region.
     only_incomplete : If True, count only incompletely overlapping sites.
 
@@ -1685,13 +1685,13 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
                          out_intron_bed=False,
                          tr_ids_dic=False):
     """
-    Given a .gtf file with exon features, extract exon regions and store in 
-    .bed file. Optionally, a dictionary of transcript IDs can be provided, 
+    Given a .gtf file with exon features, extract exon regions and store in
+    .bed file. Optionally, a dictionary of transcript IDs can be provided,
     meaning that only exon regions from the given transcripts will be extracted.
-    If out_intron_bed is set, an intronic regions .bed file will also be 
+    If out_intron_bed is set, an intronic regions .bed file will also be
     extracted, based on the exonic regions .bed information.
-    
-    Output .bed will look like this (note column 4 ID format with transcript 
+
+    Output .bed will look like this (note column 4 ID format with transcript
     ID followed by _e+exon_number):
     chr1	1000	2000	ENST001_e1	0	+
     chr1	3000	4000	ENST001_e2	0	+
@@ -1700,8 +1700,8 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
     ...
 
     NOTE that function has been tested with .gtf files from Ensembl. .gtf files
-    from different sources sometimes have a slightly different format, which 
-    could lead to incompatibilities / errors. See test files for format that 
+    from different sources sometimes have a slightly different format, which
+    could lead to incompatibilities / errors. See test files for format that
     works.
 
     Some tested Ensembl GTF files:
@@ -1739,7 +1739,7 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
     # Open GTF either as .gz or as text file.
     if re.search(".+\.gz$", in_gtf):
         f = gzip.open(in_gtf, 'rt')
-    else: 
+    else:
         f = open(in_gtf, "r")
     for line in f:
         # Skip header.
@@ -1797,7 +1797,7 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
 
         # Count exon entry.
         c_gtf_ex_feat += 1
-        
+
         # Construct exon ID.
         exon_id = transcript_id + "_e" + str(exon_nr)
         # Store infos.
@@ -1868,12 +1868,12 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
                                               intersectBed_f=1,
                                               ignore_ids_dic=False):
     """
-    Converts a BED file with genomic coordinates into a BED file with 
-    transcriptome coordinates. A GTF file with exon features needs to be 
-    supplied. A dictionary of transcript IDs defines to which transcripts 
-    the genomic regions will be mapped to. Note that input BED file column 
-    4 is used as region ID and should be unique. 
-    
+    Converts a BED file with genomic coordinates into a BED file with
+    transcriptome coordinates. A GTF file with exon features needs to be
+    supplied. A dictionary of transcript IDs defines to which transcripts
+    the genomic regions will be mapped to. Note that input BED file column
+    4 is used as region ID and should be unique.
+
     Output files are:
     genomic_exon_coordinates.bed
         Genomic exon coordinates extracted from .gtf file
@@ -1897,8 +1897,8 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
         # unique all hits, # complete hits, # all hits
 
     NOTE that function has been tested with .gtf files from Ensembl. .gtf files
-    from different sources sometimes have a slightly different format, which 
-    could lead to incompatibilities / errors. See test files for format that 
+    from different sources sometimes have a slightly different format, which
+    could lead to incompatibilities / errors. See test files for format that
     works.
 
     Some tested Ensembl GTF files:
@@ -1908,8 +1908,8 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
 
     Requirements:
     bedTools (tested with version 2.25.0)
-    GTF file needs to have exons sorted (minus + plus strand exons, see test.gtf 
-    below as an example). Sorting should be the default (at least for tested 
+    GTF file needs to have exons sorted (minus + plus strand exons, see test.gtf
+    below as an example). Sorting should be the default (at least for tested
     Ensembl GTF files)
 
     >>> tr_ids_dic = {"ENST001" : 1, "ENST002" : 1}
@@ -1970,7 +1970,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     # Open GTF either as .gz or as text file.
     if re.search(".+\.gz$", in_gtf):
         f = gzip.open(in_gtf, 'rt')
-    else: 
+    else:
         f = open(in_gtf, "r")
     for line in f:
         # Skip header.
@@ -2042,7 +2042,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
 
         # Count exon entry.
         c_gtf_ex_feat += 1
-        
+
         # Construct exon ID.
         exon_id = transcript_id + "_e" + str(exon_nr)
 
@@ -2204,7 +2204,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
                 tr2all_hits_dic[tr_id] += 1
             else:
                 tr2all_hits_dic[tr_id] = 1
-             
+
     OUTCOM.close()
     OUTINC.close()
     f.close()
@@ -2249,7 +2249,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     tr2gen_e_dic = {}
     tr2gen_chr_dic = {}
     tr2gen_pol_dic = {}
-    
+
     with open(genome_exon_bed) as f:
         for line in f:
             cols = line.strip().split("\t")
@@ -2368,7 +2368,3 @@ three_prime_utr
 
 
 ################################################################################
-
-
-
-
