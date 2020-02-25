@@ -2313,6 +2313,63 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
 
 ################################################################################
 
+def bed_merge_identical_regions(in_bed, out_bed,
+                                out_uniq = False):
+    """
+    Merge identical regions inside in_bed .bed file and output to out_bed.
+    Store IDs of merged regions in column 4.
+
+    out_uniq:
+    Only output unique regions
+
+    >>> in_bed = "test_data/test5.bed"
+    >>> out_bed = "test_data/test5.tmp.bed"
+    >>> exp_bed = "test_data/test5.exp.bed"
+    >>> bed_merge_identical_regions(in_bed, out_bed)
+    >>> diff_two_files_identical(out_bed, exp_bed)
+    True
+
+    """
+    assert os.path.isfile(in_bed), "ERROR: Cannot open in_bed \"%s\"" % (in_bed)
+    # Read in IDs.
+    reg2ids_dic = {}
+    reg2c_dic = {}
+    with open(in_bed) as f:
+        for line in f:
+            row = line.strip()
+            cols = line.strip().split("\t")
+            chr_id = cols[0]
+            site_s = cols[1]
+            site_e = cols[2]
+            site_id = cols[3]
+            site_pol = cols[5]
+            reg_id = "%s,%s,%s,%s" %(chr_id, site_s, site_e, site_pol)
+            if reg_id in reg2ids_dic:
+                reg2ids_dic[reg_id] += ",%s" %(site_id)
+                reg2c_dic[reg_id] += 1
+            else:
+                reg2ids_dic[reg_id] = site_id
+                reg2c_dic[reg_id] = 1
+    f.closed
+    assert reg2ids_dic, "ERROR: reg2ids_dic empty. in_bed empty?"
+    # Write merged regions to out_bed.
+    OUTBED = open(out_bed,"w")
+    c_out = 0
+    for reg in reg2ids_dic:
+        reg_c = reg2c_dic[reg]
+        reg_ids = reg2ids_dic[reg]
+        if out_uniq:
+            if reg_c != 1:
+                continue
+        cols = reg.strip().split(",")
+        c_out += 1
+        OUTBED.write("%s\t%s\t%s\t%s\t0\t%s\n" % (cols[0],cols[1],cols[2],reg_ids,cols[3]))
+    OUTBED.close()
+    assert c_out, "ERROR: nothing was output into out_bed"
+
+
+################################################################################
+
 
 """
 

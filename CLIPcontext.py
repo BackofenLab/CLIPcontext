@@ -55,8 +55,8 @@ python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_
 def setup_argument_parser():
     """Setup argparse parser."""
     help_description = """
-    CLIPcontext takes genomic RBP binding regions identified by CLIP-seq, 
-    maps them to the transcriptome, and retrieves the region sequences 
+    CLIPcontext takes genomic RBP binding regions identified by CLIP-seq,
+    maps them to the transcriptome, and retrieves the region sequences
     with both genomic and transcript sequence context.
     """
     # Define argument parser.
@@ -178,16 +178,11 @@ if __name__ == '__main__':
         print("ERROR: twoBitToFa not in PATH")
         sys.exit()
     # Check file inputs.
-    if not os.path.exists(args.in_bed):
-        print("ERROR: input .bed file \"%s\" not found" %(args.in_bed))
-    if not os.path.exists(args.in_gtf):
-        print("ERROR: input .gtf file \"%s\" not found" %(args.in_gtf))
-    if not os.path.exists(args.in_fasta):
-        print("ERROR: input .fa file \"%s\" not found" %(args.in_fasta))
-    if not os.path.exists(args.in_tr_list):
-        print("ERROR: input transcript ID list file \"%s\" not found" %(args.in_tr_list))
-    if not os.path.exists(args.in_genome_2bit):
-        print("ERROR: input .2bit file \"%s\" not found" %(args.in_genome_2bit))
+    assert os.path.exists(args.in_bed), "ERROR: input .bed file \"%s\" not found" %(args.in_bed)
+    assert os.path.exists(args.in_gtf), "ERROR: input .gtf file \"%s\" not found" %(args.in_gtf)
+    assert os.path.exists(args.in_fasta), "ERROR: input .fa file \"%s\" not found" %(args.in_fasta)
+    assert os.path.exists(args.in_tr_list), "ERROR: input transcript ID list file \"%s\" not found" %(args.in_tr_list)
+    assert os.path.exists(args.in_genome_2bit), "ERROR: input .2bit file \"%s\" not found" %(args.in_genome_2bit)
     # Check .bed for content.
     c_in_sites = cliplib.count_file_rows(args.in_bed)
     if not c_in_sites:
@@ -280,7 +275,7 @@ if __name__ == '__main__':
     """
     print("Mapping full-length genomic input sites to transcriptome ... ")
     full_length_out = args.out_folder + "/" + "transcript_map_full_length_out"
-    cliplib.convert_genome_positions_to_transcriptome(filt_in_bed, full_length_out, 
+    cliplib.convert_genome_positions_to_transcriptome(filt_in_bed, full_length_out,
                                                       args.in_gtf, tr_ids_dic,
                                                       intersectBed_f=args.min_exon_ovlp)
     # All unique transcript hits (complete + incomplete hits).
@@ -340,11 +335,11 @@ if __name__ == '__main__':
     print("# unique incomplete transcript hits:       %i" %(fl_uniq_incomp_c))
 
     """
-    Merge overlapping sites, keep only highest-scoring site for each set of 
+    Merge overlapping sites, keep only highest-scoring site for each set of
     overlapping regions.
-    By default, merging takes place only for sites near exon borders 
-    (more precisely, sites that do not fully overlap with exons after 
-    extending them by --merge-ext). However, if --merge-all is set, 
+    By default, merging takes place only for sites near exon borders
+    (more precisely, sites that do not fully overlap with exons after
+    extending them by --merge-ext). However, if --merge-all is set,
     merging will be done for all overlapping sites.
     """
     # Temp files for merging operations.
@@ -390,7 +385,7 @@ if __name__ == '__main__':
     Now map center position genomic sites to transcriptomes.
     Use only merged sites that uniquely mapped in the first step,
     with their IDs stored in ids2keep_dic. After center-position mapping,
-    extension by --seq-ext will be done for both transcript sites and 
+    extension by --seq-ext will be done for both transcript sites and
     genomic sites to get both transcript and genomic context sites.
     """
 
@@ -409,7 +404,7 @@ if __name__ == '__main__':
 
     # Now map center position regions to transcriptome.
     center_pos_out = args.out_folder + "/" + "transcript_center_pos_out"
-    cliplib.convert_genome_positions_to_transcriptome(gen_cp_bed, center_pos_out, 
+    cliplib.convert_genome_positions_to_transcriptome(gen_cp_bed, center_pos_out,
                                                       args.in_gtf, tr_ids_dic)
     # All unique hits (complete + incomplete).
     cp_all_uniq_tr_hits_bed = center_pos_out + "/" + "transcript_hits_all_unique.bed"
@@ -417,11 +412,11 @@ if __name__ == '__main__':
 
     """
     Get site ID / sequence ID combinations to keep.
-    We need these since mapping center positions to transcriptome can result 
-    in sites which mapped uniquely using their full lengths before, but with 
-    center positions could map to more than one exon / transcript. This 
-    is due to the intersectBed_f overlap parameter set to 0.9, which does not 
-    report hits if they do not overlap 90%+ with exons, while for center 
+    We need these since mapping center positions to transcriptome can result
+    in sites which mapped uniquely using their full lengths before, but with
+    center positions could map to more than one exon / transcript. This
+    is due to the intersectBed_f overlap parameter set to 0.9, which does not
+    report hits if they do not overlap 90%+ with exons, while for center
     position mapping this is always satisfied.
     """
     # Get site ID / sequence ID combinations to keep.
@@ -569,6 +564,3 @@ if __name__ == '__main__':
     print("Unique matches on transcripts center positions .bed:\n%s" %(tr_uniq_cp_bed))
     print("Unique matches on transcripts center positions extended .bed:\n%s" %(tr_uniq_cp_ext_bed))
     print("Unique matches on transcripts center positions extended .fa:\n%s\n" %(tr_uniq_cp_ext_fa))
-
-
-
