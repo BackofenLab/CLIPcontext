@@ -236,7 +236,7 @@ if __name__ == '__main__':
     print("# input .bed sites:                        %i" %(c_in_sites))
 
     # Read in transcript sequences.
-    print("Reading in -f .fa sequences ...")
+    print("Reading in --fa .fa sequences ...")
     tr_seqs_dic = cliplib.read_fasta_into_dic(args.in_fasta, ids_dic=tr_ids_dic)
     tr_seqs_c = len(tr_seqs_dic)
     print("# transcript sequences read in:            %i" %(tr_seqs_c))
@@ -555,7 +555,7 @@ if __name__ == '__main__':
     print("Complete matches on transcripts .bed:\n%s" %(tr_fl_comp_bed))
     print("Incomplete matches on transcripts .bed:\n%s" %(tr_fl_incomp_bed))
     print("Unique complete matches on transcripts .bed:\n%s" %(tr_fl_uniq_comp_bed))
-    print("All unique (complete + incomplete) matches on transcripts .bed:\n%s" %(tr_fl_uniq_comp_bed))
+    print("All unique (complete + incomplete) matches on transcripts .bed:\n%s" %(tr_fl_uniq_all_bed))
     print("Mapping statistics for all transcripts with hits:\n%s\n" %(hit_tr_stats_out))
 
     print("MERGED + EXTENDED TRANSCRIPT SITES")
