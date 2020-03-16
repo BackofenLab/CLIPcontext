@@ -79,7 +79,13 @@ def setup_argument_parser():
     """Setup argparse parser."""
     # Tool description text.
     help_description = """
-    CLIPcontext 
+    CLIPcontext tool suite for mapping RBP binding regions to
+    transcriptome or genome. Several modes are available:
+    mapping from genome to transcriptome (g2t), transcriptome to genome (t2g),
+    as well as additional modes for extracting sites near exon borders (exb),
+    a list of most prominent transcripts (lst), intron-overlapping sites (int),
+    or intron + exon regions for a given set of transcripts (eir).
+
     """
 
     # Define argument parser.
@@ -491,7 +497,7 @@ def main_g2t(args):
     tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
     tr_ids_c = len(tr_ids_dic)
     assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
-    print("# transcript IDs read in:                      %i" %(tr_ids_c))
+    print("# transcript IDs read in:                    %i" %(tr_ids_c))
 
     # Extract transcript sequences from .2bit.
     print("Extract transcript sequences using --gen and --gtf ... ")
@@ -508,7 +514,11 @@ def main_g2t(args):
             print("WARNING: sequence extraction failed for transcript ID \"%s\"" %s(tr_id))
             del tr_ids_dic[tr_id]
     assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
-    print("# transcript IDs after sequence extraction:    %i" %(len(tr_ids_dic)))
+    print("# transcript IDs after sequence extraction:  %i" %(len(tr_ids_dic)))
+
+    # Count input sites.
+    c_in = cliplib.count_file_rows(args.in_bed)
+    print("# --in BED sites read-in:                    %i" %(c_in))
 
     # Filter sites by score, length.
     cliplib.bed_process_bed_file(args.in_bed, filt_in_bed,
@@ -520,10 +530,8 @@ def main_g2t(args):
 
     # Number of remaining sites.
     c_filt_sites = cliplib.count_file_rows(filt_in_bed)
-    print("# input .bed sites after --thr filtering:      %i" %(c_filt_sites))
-    if not c_filt_sites:
-        print("ERROR: no remaining BED regions after --thr filtering")
-        sys.exit()
+    assert c_filt_sites, "ERROR: no remaining BED regions after --thr filtering"
+    print("# --in BED sites after --thr filtering:      %i" %(c_filt_sites))
 
     """
     First map full length filtered input .bed to transcriptome.
@@ -558,7 +566,7 @@ def main_g2t(args):
 
     # Count unique transcript hits.
     c_uniq_fl_hits = cliplib.count_file_rows(fl_all_uniq_tr_hits_bed)
-    print("# unique transcript hits:                      %i" %(c_uniq_fl_hits))
+    print("# unique transcript hits:                    %i" %(c_uniq_fl_hits))
     if not c_uniq_fl_hits:
         print("ERROR: no unique transcript hits for given genomic .bed and transcripts")
         sys.exit()
@@ -587,8 +595,8 @@ def main_g2t(args):
             uniq_part_tr_hit_dic[site_id] = uniq_tr_hit_dic[site_id]
     fl_uniq_comp_c = len(uniq_comp_tr_hit_dic)
     fl_uniq_incomp_c = len(uniq_part_tr_hit_dic)
-    print("# unique complete transcript hits:             %i" %(fl_uniq_comp_c))
-    print("# unique incomplete transcript hits:           %i" %(fl_uniq_incomp_c))
+    print("# unique complete transcript hits:           %i" %(fl_uniq_comp_c))
+    print("# unique incomplete transcript hits:         %i" %(fl_uniq_incomp_c))
 
     """
     Merge overlapping sites, keep only highest-scoring site for each set of
@@ -609,7 +617,7 @@ def main_g2t(args):
     # IDs to keep after merging.
     ids2keep_dic = {}
     if args.merge_mode == 1:
-        print("Merging overlapping sites at exon borders ... ")
+        print("Merging sites overlapping at exon borders ... ")
         if uniq_part_tr_hit_dic:
             # Do merging only for sites near exon borders (unique hits partially overlapping with exons).
             cliplib.bed_process_bed_file(fl_all_uniq_tr_hits_bed, tmp_bed3,
@@ -645,7 +653,7 @@ def main_g2t(args):
     # Number of transcript sites after merging.
     c_ids2keep = len(ids2keep_dic)
     if not args.merge_mode == 3:
-        print("# IDs after merging overlapping sites          %i" %(c_ids2keep))
+        print("# IDs after merging overlapping sites:       %i" %(c_ids2keep))
 
     """
     Now map center position genomic sites to transcriptomes.
@@ -702,7 +710,7 @@ def main_g2t(args):
 
     # Count unique hits.
     c_uniq_cp_hits = len(id2row_dic)
-    print("# unique transcript hits (center pos)      %i" %(c_uniq_cp_hits))
+    print("# unique transcript hits:                    %i" %(c_uniq_cp_hits))
     if not c_uniq_cp_hits:
         print("ERROR: no unique transcript hits for given genomic .bed (center positions) and transcripts")
         sys.exit()
@@ -718,8 +726,8 @@ def main_g2t(args):
         seq_l = len(id2seq_dic[site_id])
         if seq_l == fl_l:
             c_fl += 1
-    print("# extracted transcript region sequences    %i" %(c_all))
-    print("# full-length transcript region sequences  %i" %(c_fl))
+    print("# extracted transcript region sequences:     %i" %(c_all))
+    print("# full-length transcript region sequences:   %i" %(c_fl))
 
     # Output sequences to FASTA file.
     cliplib.fasta_output_dic(id2seq_dic, tr_uniq_cp_ext_fa,

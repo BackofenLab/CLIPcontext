@@ -1,41 +1,41 @@
 # CLIPcontext
-CLIPcontext is a versatile tool that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
+CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
 
-### g2t
+### G2T
 
-In **g2t** mode, CLIPcontext takes genomic RBP binding regions or sites identified by CLIP-seq and maps them to the transcriptome. This way, region sequences are retrieved with both genomic and transcript sequence context. Depending on the location of the binding regions and the set context length, this leads to the extraction of two different sequence contexts:
+In **G2T** mode, CLIPcontext takes genomic RBP binding regions or sites identified by CLIP-seq and maps them to the transcriptome. This way, region sequences are retrieved with both genomic and transcript sequence context. Depending on the location of the binding regions and the set context length, this leads to the extraction of two different sequence contexts:
 
 <img src="doc/gen_tr_context.png" alt="Site with genomic and transcript context"
 	title="Site with genomic and transcript context" width="700" />
 
 (A) illustrates the usual way to extract CLIP-seq binding region sequences, after mapping of CLIP-seq reads to the genome and peak calling to identify the binding regions. The context sequence is obtained directly from the genome. In contrast, (B) shows the region mapped to the underlying transcript, from which CLIPcontext then takes the sequence to extract the (possibly more authentic) transcript context.
 
-In **g2t** mode, CLIPcontext essentially takes care of the following tasks:
+In **G2T** mode, CLIPcontext essentially takes care of the following tasks:
 
 - Mapping of genomic RBP binding regions to underlying transcripts
 - Optionally merge adjacent peak regions at exon borders (keep site with highest score)
-- Extract both genomic and transcript context sequence sets for comparative analysis
+- Extract both genomic and transcript context sets (BED regions + FASTA sequences) for comparative analysis
 
-### t2g
+### T2G
 
-In **t2g** mode, CLIPcontext maps binding sites mapped to transcripts to the genome. Again, context sequence sets are extracted for both genomic and transcript context. Both full and split matches (if sites overlap exon borders) are output.
+In **T2G** mode, CLIPcontext maps transcript binding sites back to the genome. Again, context sequence sets (BED regions + FASTA sequences) are extracted for both genomic and transcript context. Both full and split matches (if sites overlap exon borders) are output.
 
 ### lst
 
-In **lst** mode, CLIPcontext extracts the most prominent transcript for each gene from a given GTF file, producing a list of transcript IDs. The output transcript IDs list file can then be used as input for the other modes. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. Note that an Ensembl GTF file was used for testing, and that due to possible differences in formatting, other GTF files might not work. 
+In **LST** mode, CLIPcontext extracts the most prominent transcript for each gene from a given GTF file, producing a list of transcript IDs. The output transcript IDs list file can then be used as input (--tr) for the other modes. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. Note that Ensembl GTF files were used for testing, and that due to possible differences in formatting, other GTF files might not work. 
 
 
-### int
+### INT
 
-In **int** mode, CLIPcontext maps input sites to intron regions, returning only sites that overlap with intron regions. This can be useful to e.g. observe properties of intron-binding sites in a CLIP set of interest.
+In **INT** mode, CLIPcontext maps input sites to intron regions, returning only sites that overlap with intron regions. This can be useful to e.g. observe properties of intron-binding sites in a CLIP set of interest.
 
-### exb
+### EXB
 
-In **exb** mode, CLIPcontext extracts binding regions near exon borders from a set of input BED regions. It can be used to e.g. create an input dataset for CLIPcontext, focussing only on regions near exon borders for downstream analysis.
+In **EXB** mode, CLIPcontext extracts binding regions near exon borders from a set of input BED regions. It can be used to e.g. create an input dataset for CLIPcontext, focussing only on regions near exon borders for downstream analysis.
 
-### eir
+### EIR
 
-In **eir** mode, CLIPcontext creates exon + intron regions BED files for a given list of transcript IDs. For each input transcript ID exon + intron regions get extracted.
+In **EIR** mode, CLIPcontext creates exon + intron regions BED files for a given list of transcript IDs. Exon + intron regions are extracted for each input transcript ID.
 
 
 ## Installation
@@ -54,32 +54,31 @@ Dependencies for CLIPcontext are as follows:
 - python3 (tested with version 3.7.3)
 - [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.26.0)
 - [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
+- [twoBitInfo](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitInfo) executable in PATH
 
 ### Dataset requirements
 CLIPcontext was implemented to work with and tested on human datasets retrieved from [Ensembl](http://www.ensembl.org/index.html). If you want to use CLIPcontext for different organisms or with datasets from different ressources, feel free to open up an issue.
 
-The following datasets need to be obtained for running CLIPcontext:
-- A BED file (6-column format) with genomic RBP binding regions (e.g. eCLIP CLIPper peak regions obtained from [ENCODE](https://www.encodeproject.org/))
+Depending on the set mode, the following datasets need to be obtained for running CLIPcontext:
+- A BED file (6-column format) with (genomic) RBP binding regions (e.g. eCLIP CLIPper peak regions obtained from [ENCODE](https://www.encodeproject.org/))
 - A GTF file with genomic annotations from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
-- A transcript sequences FASTA file from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
-- A list of transcript IDs defining the transcriptome to map to (from sequencing data or see additional scripts)
+- A list of transcript IDs defining the transcriptome to map to (from sequencing data or generate with **LST** mode)
 - A genome .2bit file for extracting genomic sequences (for hg38 assembly click [here](https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit))
 
 ### Test run
+
 A small BED file of genomic RBP binding regions as well as a list of transcript IDs is already provided in the data/ subfolder. First we download and store all the remaining necessary datasets in the same folder:
 ```
 cd data/
 wget https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
-wget ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz
-wget ftp://ftp.ensembl.org/pub/release-98/fasta/homo_sapiens/ncrna/Homo_sapiens.GRCh38.ncrna.fa.gz
-cat Homo_sapiens.GRCh38.cdna.all.fa.gz Homo_sapiens.GRCh38.ncrna.fa.gz > Homo_sapiens.GRCh38.cdna.ncrna.fa.gz
 wget ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/Homo_sapiens.GRCh38.98.gtf.gz
 cd ..
 ```
-Now we can run CLIPcontext on the datasets in the data/ subfolder:
+Now we can run CLIPcontext in **G2T** mode on the datasets in the data/ subfolder:
 ```
-python CLIPcontext.py --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --fa data/Homo_sapiens.GRCh38.cdna.ncrna.fa.gz --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen data/hg38.2bit
+python clipcontext g2t --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen data/hg38.2bit
 ```
+
 CLIPcontext will output an overview of the files produced at the end of the run (all stored in set --out folder). For more details see the documentation section below.
 
 ## Documentation
@@ -147,43 +146,46 @@ At the end of the run, CLIPcontext prints an overview with short discriptions fo
 ```
 ....
 
-GENOMIC FILES
-=============
+VARIOUS OUTPUT FILES
+====================
 Filtered genomic input sites .bed:
 test_out/genomic_sites.bed
-Filtered genomic input sites center positions .bed:
-test_out/genomic_sites.cp.bed
-Filtered genomic input sites extended .bed:
-test_out/genomic_sites.cp.ext.bed
-Filtered genomic input sites extended .fa:
-test_out/genomic_sites.cp.ext.fa
 Genomic exon regions .bed for all transcripts with hits:
 test_out/hit_transcript_exons.bed
 
 TRANSCRIPT SITES (FROM MAPPING OF FULL-LENGTH GENOMIC SITES)
 ============================================================
-Complete matches on transcripts .bed:
+Complete matches (unique + non-unique) on transcripts .bed:
 test_out/transcript_hits_complete.bed
-Incomplete matches on transcripts .bed:
+Incomplete matches (unique + non-unique) on transcripts .bed:
 test_out/transcript_hits_incomplete.bed
-Unique complete matches on transcripts .bed:
+Complete matches (unique only) on transcripts .bed:
 test_out/transcript_hits_complete_unique.bed
-All unique (complete + incomplete) matches on transcripts .bed:
-test_out/transcript_hits_complete_unique.bed
+All matches (complete + incomplete, unique only) on transcripts .bed:
+test_out/transcript_hits_all_unique.bed
 Mapping statistics for all transcripts with hits:
 test_out/hit_transcript_stats.out
 
-MERGED + EXTENDED TRANSCRIPT SITES
-==================================
-Up- and downstream context sequence extension: 30
-Unique matches on transcripts center positions .bed:
+MERGED + EXTENDED TRANSCRIPT SITES (UNIQUE MATCHES ONLY)
+========================================================
+Unique transcript matches center positions .bed:
 test_out/transcript_sites.unique_hits.cp.bed
-Unique matches on transcripts center positions extended .bed:
+Unique transcript matches center positions extended .bed:
 test_out/transcript_sites.unique_hits.cp.ext.bed
-Unique matches on transcripts center positions extended .fa:
+Unique transcript matches center positions extended .fa:
 test_out/transcript_sites.unique_hits.cp.ext.fa
+
+GENOMIC SITES (CORRESPONDING TO MERGED + EXTENDED TRANSCRIPT SITES)
+===================================================================
+Genomic sites center positions .bed:
+test_out/genomic_sites.cp.bed
+Genomic sites center positions extended .bed:
+test_out/genomic_sites.cp.ext.bed
+Genomic sites center positions extended .fa:
+test_out/genomic_sites.cp.ext.fa
+
 ```
-Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --us-ds-ext). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
+Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
 
 
 ### Dataset formats
