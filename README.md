@@ -63,7 +63,7 @@ Depending on the set mode, the following datasets need to be obtained for runnin
 - A BED file (6-column format) with (genomic) RBP binding regions (e.g. eCLIP CLIPper peak regions obtained from [ENCODE](https://www.encodeproject.org/))
 - A GTF file with genomic annotations from Ensembl (see [download page](http://www.ensembl.org/info/data/ftp/index.html))
 - A list of transcript IDs defining the transcriptome to map to (from sequencing data or generate with **LST** mode)
-- A genome .2bit file for extracting genomic sequences (for hg38 assembly click [here](https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit))
+- A genome .2bit file for extracting genomic and transcript sequences (for hg38 assembly click [here](https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit))
 
 ### Test run
 
