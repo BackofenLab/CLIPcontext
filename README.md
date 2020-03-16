@@ -1,17 +1,41 @@
 # CLIPcontext
-CLIPcontext takes genomic RBP binding regions or sites identified by CLIP-seq, maps them to the transcriptome, 
-and retrieves the region sequences with both genomic and transcript sequence context. Depending on the location of the binding regions and the set context length, this leads to the extraction of two different sequence contexts:
+CLIPcontext is a versatile tool that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
+
+### g2t
+
+In **g2t** mode, CLIPcontext takes genomic RBP binding regions or sites identified by CLIP-seq and maps them to the transcriptome. This way, region sequences are retrieved with both genomic and transcript sequence context. Depending on the location of the binding regions and the set context length, this leads to the extraction of two different sequence contexts:
 
 <img src="doc/gen_tr_context.png" alt="Site with genomic and transcript context"
 	title="Site with genomic and transcript context" width="700" />
 
 (A) illustrates the usual way to extract CLIP-seq binding region sequences, after mapping of CLIP-seq reads to the genome and peak calling to identify the binding regions. The context sequence is obtained directly from the genome. In contrast, (B) shows the region mapped to the underlying transcript, from which CLIPcontext then takes the sequence to extract the (possibly more authentic) transcript context.
 
-CLIPcontext essentially takes care of the following tasks:
+In **g2t** mode, CLIPcontext essentially takes care of the following tasks:
 
 - Mapping of genomic RBP binding regions to underlying transcripts
-- Merge adjacent peak regions at exon borders (keep site with highest score)
-- Extract both genomic and transcript context sequences for comparative analysis
+- Optionally merge adjacent peak regions at exon borders (keep site with highest score)
+- Extract both genomic and transcript context sequence sets for comparative analysis
+
+### t2g
+
+In **t2g** mode, CLIPcontext maps binding sites mapped to transcripts to the genome. Again, context sequence sets are extracted for both genomic and transcript context. Both full and split matches (if sites overlap exon borders) are output.
+
+### lst
+
+In **lst** mode, CLIPcontext extracts the most prominent transcript for each gene from a given GTF file, producing a list of transcript IDs. The output transcript IDs list file can then be used as input for the other modes. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. Note that an Ensembl GTF file was used for testing, and that due to possible differences in formatting, other GTF files might not work. 
+
+
+### int
+
+In **int** mode, CLIPcontext maps input sites to intron regions, returning only sites that overlap with intron regions. This can be useful to e.g. observe properties of intron-binding sites in a CLIP set of interest.
+
+### exb
+
+In **exb** mode, CLIPcontext extracts binding regions near exon borders from a set of input BED regions. It can be used to e.g. create an input dataset for CLIPcontext, focussing only on regions near exon borders for downstream analysis.
+
+### eir
+
+In **eir** mode, CLIPcontext creates exon + intron regions BED files for a given list of transcript IDs. For each input transcript ID exon + intron regions get extracted.
 
 
 ## Installation
@@ -21,7 +45,7 @@ To install CLIPcontext, simply clone the repository and use the Python script wi
 ```
 git clone https://github.com/michauhl/CLIPcontext.git
 cd CLIPcontext
-python CLIPcontext.py -h
+python clipcontext -h
 ```
 
 ### Dependencies

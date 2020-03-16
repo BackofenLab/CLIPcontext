@@ -8,107 +8,69 @@ import sys
 import os
 
 """
-2DO:
-Sanity check: compare extracted transcript sequences center positions with genomic center?
-If not tr_list given, use whole GTF ?
-Add modes:
-exb Get regions near exon borders
-lst Get Extract most prominent transcript for each gene
 
-Regions vs sites
+# Check out available modes:
+./clipcontext -h
+
+
 
 
 Input example t2g:
-
 ==================
+
 ./clipcontext t2g
 --in lib/test_data/test_tr2gen.bed
---out test_out_t2g
 --gtf lib/test_data/test_tr2gen.gtf
---gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
-
-./clipcontext t2g --in lib/test_data/test_tr2gen.bed --out test_out2 --gtf lib/test_data/test_tr2gen.gtf --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+--out test_out_t2g
+--gen data/hg38.2bit
 
 Input example g2t:
 ==================
 
 ./clipcontext g2t
---in test_in/g2t_test_in.bed
+--in data/g2t_test_in.bed
+--tr data/g2t_test_in.tr_list
+--gtf data/g2t_test_in.gtf
 --out test_out_g2t
---tr test_in/g2t_test_in.tr_list
---gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
---gtf test_in/g2t_test_in.gtf
-
-
-./clipcontext g2t --in test_in/g2t_test_in.bed --out test_out_g2t --tr test_in/g2t_test_in.tr_list --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit --gtf test_in/g2t_test_in.gtf
-
+--gen data/hg38.2bit
 
 Input example lst:
 ==================
 
 ./clipcontext lst
---gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz
---out test_in/prominent_transcript_gtf.out
+--gtf data/Homo_sapiens.GRCh38.98.gtf.gz
+--out prominent_transcripts_gtf.out
 --strict
 --add-infos
-
-./clipcontext lst --gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz --out test_in/prominent_transcript_gtf.out
-
-./clipcontext lst --gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz --out test_in/prominent_transcript_gtf.out --strict --add-infos
-
 
 Input example exb:
 ==================
 
 ./clipcontext exb
---in data/SERBP1_K562_rep1_sites_chr1_hg38.bed
---tr data/GRCh38.p12.prominent_isoforms_chr1.out
---gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz
---out test_in/sites_near_exon_borders.bed
-
-
-./clipcontext exb --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --tr data/GRCh38.p12.prominent_isoforms_chr1.out --gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz --out test_in/sites_near_exon_borders.bed
-
-
-./clipcontext exb
---in data/SERBP1_K562_rep1_sites_chr1_hg38.bed
---tr data/GRCh38.p12.prominent_isoforms_chr1.out
---gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz
---out test_in/sites_near_exon_borders.bed
-
-./clipcontext exb
---gtf test_in/g2t_test_in.gtf
---tr test_in/g2t_test_in.tr_list
---in test_in/g2t_test_in.bed
---out test_in/sites_near_exon_borders.bed
-
-./clipcontext exb --gtf test_in/g2t_test_in.gtf --tr test_in/g2t_test_in.tr_list --in test_in/g2t_test_in.bed --out test_in/sites_near_exon_borders.bed
-
+--gtf data/g2t_test_in.gtf
+--tr data/g2t_test_in.tr_list
+--in data/g2t_test_in.bed
+--out sites_near_exon_borders.bed
 
 Input example eir:
 ==================
 
 ./clipcontext eir
---tr test_in/g2t_test_in.tr_list
---gtf test_in/g2t_test_in.gtf
---exon-out test_in/extracted_exon_regions.bed
---intron-out test_in/extracted_intron_regions.bed
-
-./clipcontext eir --tr test_in/g2t_test_in.tr_list --gtf test_in/g2t_test_in.gtf --exon-out test_in/extracted_exon_regions.bed --intron-out test_in/extracted_intron_regions.bed
+--tr data/g2t_test_in.tr_list
+--gtf data/g2t_test_in.gtf
+--exon-out extracted_exon_regions.bed
+--intron-out extracted_intron_regions.bed
 
 Input example int:
 ==================
 
 ./clipcontext int
---in test_in/g2t_test_in.bed
---tr test_in/g2t_test_in.tr_list
---gtf test_in/g2t_test_in.gtf
---out test_in/intronic_sites.bed
-
-./clipcontext int --in test_in/g2t_test_in.bed --tr test_in/g2t_test_in.tr_list --gtf test_in/g2t_test_in.gtf --out test_in/intronic_sites.bed
+--in data/g2t_test_in.bed
+--tr data/g2t_test_in.tr_list
+--gtf data/g2t_test_in.gtf
+--out intronic_sites.bed
 
 """
-
 
 
 ################################################################################
@@ -117,7 +79,7 @@ def setup_argument_parser():
     """Setup argparse parser."""
     # Tool description text.
     help_description = """
-    CLIPcontext tool description
+    CLIPcontext 
     """
 
     # Define argument parser.
