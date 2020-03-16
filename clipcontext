@@ -1,0 +1,1457 @@
+#!/usr/bin/env python3
+
+from lib import cliplib
+import argparse
+import shutil
+import gzip
+import sys
+import os
+
+"""
+2DO:
+Sanity check: compare extracted transcript sequences center positions with genomic center?
+If not tr_list given, use whole GTF ?
+Add modes:
+exb Get regions near exon borders
+lst Get Extract most prominent transcript for each gene
+
+Regions vs sites
+
+
+Input example t2g:
+
+==================
+./clipcontext t2g
+--in lib/test_data/test_tr2gen.bed
+--out test_out_t2g
+--gtf lib/test_data/test_tr2gen.gtf
+--gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+
+./clipcontext t2g --in lib/test_data/test_tr2gen.bed --out test_out2 --gtf lib/test_data/test_tr2gen.gtf --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+
+Input example g2t:
+==================
+
+./clipcontext g2t
+--in test_in/g2t_test_in.bed
+--out test_out_g2t
+--tr test_in/g2t_test_in.tr_list
+--gen /home/uhlm/Daten/genomes_2bit/hg38.2bit
+--gtf test_in/g2t_test_in.gtf
+
+
+./clipcontext g2t --in test_in/g2t_test_in.bed --out test_out_g2t --tr test_in/g2t_test_in.tr_list --gen /home/uhlm/Daten/genomes_2bit/hg38.2bit --gtf test_in/g2t_test_in.gtf
+
+
+Input example lst:
+==================
+
+./clipcontext lst
+--gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz
+--out test_in/prominent_transcript_gtf.out
+--strict
+--add-infos
+
+./clipcontext lst --gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz --out test_in/prominent_transcript_gtf.out
+
+./clipcontext lst --gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz --out test_in/prominent_transcript_gtf.out --strict --add-infos
+
+
+Input example exb:
+==================
+
+./clipcontext exb
+--in data/SERBP1_K562_rep1_sites_chr1_hg38.bed
+--tr data/GRCh38.p12.prominent_isoforms_chr1.out
+--gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz
+--out test_in/sites_near_exon_borders.bed
+
+
+./clipcontext exb --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --tr data/GRCh38.p12.prominent_isoforms_chr1.out --gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz --out test_in/sites_near_exon_borders.bed
+
+
+./clipcontext exb
+--in data/SERBP1_K562_rep1_sites_chr1_hg38.bed
+--tr data/GRCh38.p12.prominent_isoforms_chr1.out
+--gtf /home/uhlm/Daten/Ensembl_files/Homo_sapiens.GRCh38.98.gtf.gz
+--out test_in/sites_near_exon_borders.bed
+
+./clipcontext exb
+--gtf test_in/g2t_test_in.gtf
+--tr test_in/g2t_test_in.tr_list
+--in test_in/g2t_test_in.bed
+--out test_in/sites_near_exon_borders.bed
+
+./clipcontext exb --gtf test_in/g2t_test_in.gtf --tr test_in/g2t_test_in.tr_list --in test_in/g2t_test_in.bed --out test_in/sites_near_exon_borders.bed
+
+
+Input example eir:
+==================
+
+./clipcontext eir
+--tr test_in/g2t_test_in.tr_list
+--gtf test_in/g2t_test_in.gtf
+--exon-out test_in/extracted_exon_regions.bed
+--intron-out test_in/extracted_intron_regions.bed
+
+./clipcontext eir --tr test_in/g2t_test_in.tr_list --gtf test_in/g2t_test_in.gtf --exon-out test_in/extracted_exon_regions.bed --intron-out test_in/extracted_intron_regions.bed
+
+Input example int:
+==================
+
+./clipcontext int
+--in test_in/g2t_test_in.bed
+--tr test_in/g2t_test_in.tr_list
+--gtf test_in/g2t_test_in.gtf
+--out test_in/intronic_sites.bed
+
+./clipcontext int --in test_in/g2t_test_in.bed --tr test_in/g2t_test_in.tr_list --gtf test_in/g2t_test_in.gtf --out test_in/intronic_sites.bed
+
+"""
+
+
+
+################################################################################
+
+def setup_argument_parser():
+    """Setup argparse parser."""
+    # Tool description text.
+    help_description = """
+    CLIPcontext tool description
+    """
+
+    # Define argument parser.
+    p = argparse.ArgumentParser(#add_help=False,
+                                prog="clipcontext",
+                                description=help_description)
+
+    # Add subparsers.
+    subparsers = p.add_subparsers(help='Program modes')
+
+    # Genome to transcript mode.
+    p_g2t = subparsers.add_parser('g2t',
+                                  help='Map genomic sites to transcript sites')
+    p_g2t.set_defaults(which='g2t')
+    # Add required arguments group.
+    p_g2tm = p_g2t.add_argument_group("required arguments")
+    # Required arguments for t2g.
+    p_g2tm.add_argument("--in",
+                    dest="in_bed",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic regions (hg38) BED file (6-column format)")
+    p_g2tm.add_argument("--out",
+                   dest="out_folder",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Output results folder")
+    p_g2tm.add_argument("--tr",
+                   dest="in_tr_list",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Transcript sequence IDs list file to define transcripts to map on")
+    p_g2tm.add_argument("--gtf",
+                   dest="in_gtf",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)")
+    p_g2tm.add_argument("--gen",
+                   dest="in_2bit",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic sequences (hg38) .2bit file")
+    # Optional arguments.
+    p_g2t.add_argument("--thr",
+                   dest = "score_thr",
+                   type = float,
+                   metavar='float',
+                   default = None,
+                   help = "Site score threshold for filtering --in BED file (default: None)")
+    p_g2t.add_argument("--rev-filter",
+                   dest = "rev_filter",
+                   default = False,
+                   action = "store_true",
+                   help = "Reverse filtering (keep values <= threshold and prefer sites with smaller values) (default: False)")
+    p_g2t.add_argument("--min-len",
+                   dest = "min_site_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Minimum input site length for filtering --in BED file (default: False)")
+    p_g2t.add_argument("--max-len",
+                   dest = "max_site_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Maximum input site length for filtering --in BED file (default: False)")
+    p_g2t.add_argument("--min-exon-ol",
+                   dest = "min_exon_ovlp",
+                   type = float,
+                   metavar='float',
+                   default = 0.9,
+                   help = "Minimum exon overlap of a site to be reported as transcript hit (intersectBed -f parameter) (default: 0.9)")
+    p_g2t.add_argument("--merge-mode",
+                   dest="merge_mode",
+                   type = int,
+                   default = 1,
+                   metavar='{1,2,3}',
+                   choices = [1,2,3],
+                   help = "Defines how to merge overlapping transcript sites (overlap controlled by --merge-ext). (1) only merge sites overlapping at exon borders, (2) merge all overlapping sites, (3) do NOT merge overlapping sites (default: 1)")
+    p_g2t.add_argument("--merge-ext",
+                   dest="merge_ext",
+                   type = int,
+                   metavar='int',
+                   default = 10,
+                   help = "Extend regions mapped to transcripts by --merge-ext before running mergeBed to merge overlapping regions (default: 10)")
+    p_g2t.add_argument("--add-out",
+                   dest = "add_out",
+                   default = False,
+                   action = "store_true",
+                   help = "Output centered and extended sites and sequences for all transcript matches (unique + non-unique) (default: False)")
+    p_g2t.add_argument("--seq-ext",
+                   dest="us_ds_ext",
+                   type = int,
+                   metavar='int',
+                   default = 30,
+                   help = "Up- and downstream extension of centered sites for context sequence extraction (default: 30)")
+    p_g2t.add_argument("--all-gen-out",
+                   dest = "all_gen_out",
+                   default = False,
+                   action = "store_true",
+                   help = "Output all centered and extended genomic regions, instead of only the ones with unique transcript matches (default: False)")
+    p_g2t.add_argument("--gen-uniq-ids",
+                   dest = "gen_uniq_ids",
+                   default = False,
+                   action = "store_true",
+                   help = "Generate unique column 4 IDs for --in BED file entries (default: False)")
+
+    # Transcript to genome mode.
+    p_t2g = subparsers.add_parser('t2g',
+                                  help='Map transcript sites to genomic sites')
+    p_t2g.set_defaults(which='t2g')
+    # Add required arguments group.
+    p_t2gm = p_t2g.add_argument_group("required arguments")
+    # Required arguments for t2g.
+    p_t2gm.add_argument("--in",
+                   dest="in_bed",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Transcript regions BED file (6-column format) (transcript IDs need to be in --gtf)")
+    p_t2gm.add_argument("--out",
+                   dest="out_folder",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Output results folder")
+    p_t2gm.add_argument("--gtf",
+                   dest="in_gtf",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)")
+    p_t2gm.add_argument("--gen",
+                   dest="in_2bit",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic sequences (hg38) .2bit file")
+    # Optional arguments for t2g.
+    p_t2g.add_argument("--thr",
+                   dest = "score_thr",
+                   type = float,
+                   metavar='float',
+                   default = None,
+                   help = "Site score threshold for filtering --in BED file (default: None)")
+    p_t2g.add_argument("--rev-filter",
+                   dest = "rev_filter",
+                   default = False,
+                   action = "store_true",
+                   help = "Reverse filtering (keep values <= threshold and prefer sites with smaller values) (default: False)")
+    p_t2g.add_argument("--min-len",
+                   dest = "min_site_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Minimum input site length for filtering --in BED file (default: False)")
+    p_t2g.add_argument("--max-len",
+                   dest = "max_site_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Maximum input site length for filtering --in BED file (default: False)")
+    p_t2g.add_argument("--seq-ext",
+                   dest="us_ds_ext",
+                   type = int,
+                   metavar='int',
+                   default = 30,
+                   help = "Up- and downstream extension of centered sites for context sequence extraction (default: 30)")
+    p_t2g.add_argument("--gen-uniq-ids",
+                   dest = "gen_uniq_ids",
+                   default = False,
+                   action = "store_true",
+                   help = "Generate unique column 4 IDs for --in BED file entries (default: False)")
+
+    # Most prominent transcript list extraction mode.
+    p_lst = subparsers.add_parser('lst',
+                                  help='Get list of most prominent transcripts')
+    p_lst.set_defaults(which='lst')
+    # Add required arguments group.
+    p_lstm = p_lst.add_argument_group("required arguments")
+    # Required arguments for lst.
+    p_lstm.add_argument("--gtf",
+                   dest="in_gtf",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz) (NOTE: tested with Ensembl GTF files, expects transcript support level (TSL) information)")
+    p_lstm.add_argument("--out",
+                   dest="out_file",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Output transcript IDs list file")
+    # Optional arguments.
+    p_lst.add_argument("--min-len",
+                   dest="min_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Accept only transcripts with length >= --min-len (default: False)")
+    p_lst.add_argument("--strict",
+                   dest="strict",
+                   default = False,
+                   action = "store_true",
+                   help = "Accept only transcripts with transcript support level (TSL) 1-5 (default: False)")
+    p_lst.add_argument("--add-infos",
+                   dest="add_infos",
+                   default = False,
+                   action = "store_true",
+                   help = "Add additional information columns (gene ID, TSL, length) to output file (default: False)")
+
+    # Sites overlapping with intronic regions mode.
+    p_int = subparsers.add_parser('int',
+                                  help='Get sites overlapping with introns')
+    p_int.set_defaults(which='int')
+    # Add required arguments group.
+    p_intm = p_int.add_argument_group("required arguments")
+    # Required arguments for int.
+    p_intm.add_argument("--in",
+                   dest="in_bed",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "CLIP peak regions input BED file (6-column format)")
+    p_intm.add_argument("--tr",
+                   dest="in_tr_list",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Transcript sequence IDs list file to define intron regions")
+    p_intm.add_argument("--gtf",
+                   dest="in_gtf",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)")
+    p_intm.add_argument("--out",
+                   dest="out_bed",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "CLIP peak regions overlapping with introns output BED file")
+    # Optional arguments for int.
+    p_int.add_argument("--min-intron-ol",
+                   dest = "min_intron_ovlp",
+                   type = float,
+                   metavar='float',
+                   default = 0.9,
+                   help = "Minimum intron overlap of a site to be reported as intron overlapping (intersectBed -f parameter) (default: 0.9)")
+    p_int.add_argument("--min-len",
+                   dest = "min_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Minimum input site length for filtering --in BED file (default: False)")
+    p_int.add_argument("--max-len",
+                   dest = "max_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Maximum input site length for filtering --in BED file (default: False)")
+    p_int.add_argument("--thr",
+                   dest = "score_thr",
+                   type = float,
+                   metavar='float',
+                   default = None,
+                   help = "Filter out --in BED regions < --thr column 5 score (default: no filtering)")
+    p_int.add_argument("--rev-filter",
+                   dest = "rev_filter",
+                   default = False,
+                   action = "store_true",
+                   help = "Reverse filtering (keep values <= --thr and prefer sites with smaller values) (default: False)")
+
+    # Most prominent transcript list extraction mode.
+    p_exb = subparsers.add_parser('exb',
+                                  help='Get sites near exon borders')
+    p_exb.set_defaults(which='exb')
+    # Add required arguments group.
+    p_exbm = p_exb.add_argument_group("required arguments")
+    # Required arguments for exb.
+    p_exbm.add_argument("--in",
+                   dest="in_bed",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "CLIP peak regions input BED file (6-column format)")
+    p_exbm.add_argument("--tr",
+                   dest="in_tr_list",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Transcript sequence IDs list file to define exon regions")
+    p_exbm.add_argument("--gtf",
+                   dest="in_gtf",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)")
+    p_exbm.add_argument("--out",
+                   dest="out_bed",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "CLIP peak regions near exon borders output BED file")
+    # Optional arguments.
+    p_exb.add_argument("--max-dist",
+                   dest = "max_dist",
+                   type = int,
+                   metavar='int',
+                   default = 50,
+                   help = "Maximum distance of CLIP peak region end to nearest exon end for CLIP region to still be output (default: 50)")
+    p_exb.add_argument("--min-len",
+                   dest = "min_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Minimum input site length for filtering --in BED file (default: False)")
+    p_exb.add_argument("--max-len",
+                   dest = "max_len",
+                   type = int,
+                   metavar='int',
+                   default = False,
+                   help = "Maximum input site length for filtering --in BED file (default: False)")
+    p_exb.add_argument("--thr",
+                   dest = "score_thr",
+                   type = float,
+                   metavar='float',
+                   default = None,
+                   help = "Filter out --in BED regions < --thr column 5 score (default: no filtering)")
+    p_exb.add_argument("--rev-filter",
+                   dest = "rev_filter",
+                   default = False,
+                   action = "store_true",
+                   help = "Reverse filtering (keep values <= --thr and prefer sites with smaller values) (default: False)")
+
+    # Exon and intron regions extractor mode.
+    p_eir = subparsers.add_parser('eir',
+                                  help='Get exon and intron regions')
+    p_eir.set_defaults(which='eir')
+    # Add required arguments group.
+    p_eirm = p_eir.add_argument_group("required arguments")
+    # Required arguments for eir.
+    p_eirm.add_argument("--tr",
+                   dest="in_tr_list",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Transcript sequence IDs list file for which to extract exon + intron regions")
+    p_eirm.add_argument("--gtf",
+                   dest="in_gtf",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)")
+    p_eirm.add_argument("--exon-out",
+                   dest="exon_out",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Exon regions BED output file")
+    p_eirm.add_argument("--intron-out",
+                   dest="intron_out",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Intron regions BED output file")
+
+    return p
+
+
+################################################################################
+
+def main_g2t(args):
+    """
+    Map --in BED genomic sites to transcriptome.
+
+    """
+
+    print("Running for you in G2T mode ... ")
+
+    # Generate results output folder.
+    if not os.path.exists(args.out_folder):
+        os.makedirs(args.out_folder)
+
+    # Output files.
+    chr_lengths_file = args.out_folder + "/" + "chromosome_lengths.out"
+    filt_in_bed = args.out_folder + "/" + "genomic_sites.bed"
+    gen_cp_bed = args.out_folder + "/" + "genomic_sites.cp.bed"
+    gen_cp_ext_bed = args.out_folder + "/" + "genomic_sites.cp.ext.bed"
+    gen_cp_ext_fa = args.out_folder + "/" + "genomic_sites.cp.ext.fa"
+    tr_uniq_cp_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.bed"
+    tr_uniq_cp_ext_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.ext.bed"
+    tr_uniq_cp_ext_fa = args.out_folder + "/" + "transcript_sites.unique_hits.cp.ext.fa"
+    # Full length files.
+    tr_fl_comp_bed = args.out_folder + "/" + "transcript_hits_complete.bed"
+    tr_fl_incomp_bed = args.out_folder + "/" + "transcript_hits_incomplete.bed"
+    tr_fl_uniq_comp_bed = args.out_folder + "/" + "transcript_hits_complete_unique.bed"
+    tr_fl_uniq_all_bed = args.out_folder + "/" + "transcript_hits_all_unique.bed"
+    # Full lengths hit transcript exons + stats.
+    hit_tr_exons_bed = args.out_folder + "/" + "hit_transcript_exons.bed"
+    hit_tr_stats_out = args.out_folder + "/" + "hit_transcript_stats.out"
+
+    # Read in transcript ID list.
+    tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
+    tr_ids_c = len(tr_ids_dic)
+    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    print("# transcript IDs read in:                      %i" %(tr_ids_c))
+
+    # Extract transcript sequences from .2bit.
+    print("Extract transcript sequences using --gen and --gtf ... ")
+    tr_seqs_dic = cliplib.get_transcript_sequences_from_gtf(args.in_gtf, args.in_2bit,
+                                                            tr_ids_dic=tr_ids_dic)
+    # Get transcript lengths.
+    tr_len_dic = cliplib.get_seq_lengths_from_seqs_dic(tr_seqs_dic)
+    # Get chromosome lengths.
+    chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, chr_lengths_file)
+
+    # Remove transcript IDs for which sequence extraction failed.
+    for tr_id in tr_ids_dic:
+        if tr_id not in tr_seqs_dic:
+            print("WARNING: sequence extraction failed for transcript ID \"%s\"" %s(tr_id))
+            del tr_ids_dic[tr_id]
+    assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
+    print("# transcript IDs after sequence extraction:    %i" %(len(tr_ids_dic)))
+
+    # Filter sites by score, length.
+    cliplib.bed_process_bed_file(args.in_bed, filt_in_bed,
+                                 score_thr=args.score_thr,
+                                 min_len=args.min_site_len,
+                                 max_len=args.max_site_len,
+                                 generate_unique_ids=args.gen_uniq_ids,
+                                 rev_filter=args.rev_filter)
+
+    # Number of remaining sites.
+    c_filt_sites = cliplib.count_file_rows(filt_in_bed)
+    print("# input .bed sites after --thr filtering:      %i" %(c_filt_sites))
+    if not c_filt_sites:
+        print("ERROR: no remaining BED regions after --thr filtering")
+        sys.exit()
+
+    """
+    First map full length filtered input .bed to transcriptome.
+    Do this to get regions at exon borders, which will later be merged.
+    """
+    print("Mapping full-length genomic input sites to transcriptome ... ")
+    full_length_out = args.out_folder + "/" + "transcript_map_full_length_out"
+    cliplib.convert_genome_positions_to_transcriptome(filt_in_bed, full_length_out,
+                                                      args.in_gtf, tr_ids_dic,
+                                                      intersectBed_f=args.min_exon_ovlp)
+    # All unique transcript hits (complete + incomplete hits).
+    fl_all_uniq_tr_hits_bed = full_length_out + "/" + "transcript_hits_all_unique.bed"
+    # Complete and incomplete hits, both unique and multi hits.
+    fl_comp_transcript_hits_bed = full_length_out + "/" + "transcript_hits_complete.bed"
+    fl_incomp_transcript_hits_bed = full_length_out + "/" + "transcript_hits_incomplete.bed"
+    # Unique hits, only complete matches.
+    fl_uniq_comp_hits_bed = full_length_out + "/" + "transcript_hits_complete_unique.bed"
+
+    # Genomic exon .bed of transcripts provided by -t.
+    genome_exon_bed = full_length_out + "/" + "genomic_exon_coordinates.bed"
+    # Exons .bed for all transcripts with full length hits.
+    fl_hit_tr_exons_bed = full_length_out + "/" + "hit_transcript_exons.bed"
+    # Stats for transcripts with full length hits.
+    fl_hit_tr_stats_out = full_length_out + "/" + "hit_transcript_stats.out"
+    # Copy to output files.
+    cliplib.make_file_copy(fl_hit_tr_exons_bed, hit_tr_exons_bed)
+    cliplib.make_file_copy(fl_hit_tr_stats_out, hit_tr_stats_out)
+    cliplib.make_file_copy(fl_comp_transcript_hits_bed, tr_fl_comp_bed)
+    cliplib.make_file_copy(fl_incomp_transcript_hits_bed, tr_fl_incomp_bed)
+    cliplib.make_file_copy(fl_all_uniq_tr_hits_bed, tr_fl_uniq_all_bed)
+    cliplib.make_file_copy(fl_uniq_comp_hits_bed, tr_fl_uniq_comp_bed)
+
+    # Count unique transcript hits.
+    c_uniq_fl_hits = cliplib.count_file_rows(fl_all_uniq_tr_hits_bed)
+    print("# unique transcript hits:                      %i" %(c_uniq_fl_hits))
+    if not c_uniq_fl_hits:
+        print("ERROR: no unique transcript hits for given genomic .bed and transcripts")
+        sys.exit()
+
+    # Get IDs for unique transcript hits (site ID -> site score dic).
+    uniq_tr_hit_dic = cliplib.bed_get_region_id_scores(fl_all_uniq_tr_hits_bed)
+    # Map site IDs to sequence IDs.
+    uniq_tr_seqid2siteid_dic = cliplib.bed_map_region_id_to_seq_id(fl_all_uniq_tr_hits_bed)
+
+    # Get IDs for genomic sites that completely overlap with exons (after merge_ext).
+    tmp_bed1 = args.out_folder + "/" + "genomic_sites.merge_ext.tmp.bed"
+    cliplib.bed_process_bed_file(filt_in_bed, tmp_bed1,
+                                 siteids2keep_dic=uniq_tr_hit_dic,
+                                 ext_lr=args.merge_ext)
+    tmp_bed2 = args.out_folder + "/" + "genomic_sites.merge_ext.comp_exon_ovlp.tmp.bed"
+    cliplib.intersect_bed_files(tmp_bed1, genome_exon_bed, "-s -f 1 -u", tmp_bed2)
+    comp_ex_hit_dic = cliplib.bed_get_region_id_scores(tmp_bed2)
+
+    # Get unique transcript sites that only partially overlap with exons (after merge_ext).
+    uniq_part_tr_hit_dic = {}
+    uniq_comp_tr_hit_dic = {}
+    for site_id in uniq_tr_hit_dic:
+        if site_id in comp_ex_hit_dic: # if completely overlapping.
+            uniq_comp_tr_hit_dic[site_id] = uniq_tr_hit_dic[site_id]
+        else:
+            uniq_part_tr_hit_dic[site_id] = uniq_tr_hit_dic[site_id]
+    fl_uniq_comp_c = len(uniq_comp_tr_hit_dic)
+    fl_uniq_incomp_c = len(uniq_part_tr_hit_dic)
+    print("# unique complete transcript hits:             %i" %(fl_uniq_comp_c))
+    print("# unique incomplete transcript hits:           %i" %(fl_uniq_incomp_c))
+
+    """
+    Merge overlapping sites, keep only highest-scoring site for each set of
+    overlapping regions.
+    By default, merging takes place only for sites uniquely mapped
+    to transcripts near exon borders (more precisely, sites that do
+    not fully overlap with exons after extending them by --merge-ext).
+    --merge-mode 1 : default, merge at exon borders
+    --merge-mode 2 : merge all overlapping sites
+    --merge-mode 3 : no merging of overlapping sites
+
+    """
+    # Temp files for merging operations.
+    tmp_bed3 = args.out_folder + "/" + "prolonged_unique_transcript_hits.tmp.bed";
+    tmp_bed4 = args.out_folder + "/" + "prolonged_unique_transcript_hits.sorted.tmp.bed";
+    tmp_bed5 = args.out_folder + "/" + "prolonged_unique_transcript_hits.merged.tmp.bed";
+
+    # IDs to keep after merging.
+    ids2keep_dic = {}
+    if args.merge_mode == 1:
+        print("Merging overlapping sites at exon borders ... ")
+        if uniq_part_tr_hit_dic:
+            # Do merging only for sites near exon borders (unique hits partially overlapping with exons).
+            cliplib.bed_process_bed_file(fl_all_uniq_tr_hits_bed, tmp_bed3,
+                                         siteids2keep_dic=uniq_part_tr_hit_dic,
+                                         ext_lr=args.merge_ext)
+            # Sort .bed file.
+            cliplib.bed_sort_file(tmp_bed3, tmp_bed4)
+            # Merge .bed file (mergeBed overlapping regions).
+            cliplib.bed_merge_file(tmp_bed4, tmp_bed5)
+            # Select region IDs (in case of overlaps choose highest-scoring region).
+            ids2keep_dic = cliplib.bed_merge_file_select_top_ids(tmp_bed5, uniq_part_tr_hit_dic)
+        # Add complete exon hits to ids2keep dictionary.
+        ids2keep_dic.update(uniq_comp_tr_hit_dic)
+    elif args.merge_mode == 2:
+        # If all overlapping sets of sites should be merged.
+        print("Merging all overlapping sites ... ")
+        # Prolong unique hits on transcripts by set merge extension.
+        cliplib.bed_process_bed_file(fl_all_uniq_tr_hits_bed, tmp_bed3,
+                                     zero_scores=True,
+                                     ext_lr=args.merge_ext)
+        # Sort .bed file.
+        cliplib.bed_sort_file(tmp_bed3, tmp_bed4)
+        # Merge .bed file (mergeBed overlapping regions).
+        cliplib.bed_merge_file(tmp_bed4, tmp_bed5)
+        # Select region IDs (in case of overlaps choose highest-scoring region).
+        ids2keep_dic = cliplib.bed_merge_file_select_top_ids(tmp_bed5, uniq_tr_hit_dic)
+    elif args.merge_mode == 3:
+        # Just take uniquely mapped site IDs (all unique).
+        ids2keep_dic = uniq_tr_hit_dic
+    else:
+        assert 0, "ERROR: invalid --merge-mode set"
+
+    # Number of transcript sites after merging.
+    c_ids2keep = len(ids2keep_dic)
+    if not args.merge_mode == 3:
+        print("# IDs after merging overlapping sites          %i" %(c_ids2keep))
+
+    """
+    Now map center position genomic sites to transcriptomes.
+    Use only merged sites that uniquely mapped in the first step,
+    with their IDs stored in ids2keep_dic. After center-position mapping,
+    extension by --seq-ext will be done for both transcript sites and
+    genomic sites to get both transcript and genomic context sites.
+    """
+
+    print("Mapping center positions of genomic input sites to transcriptome ... ")
+
+    # Convert filtered input .bed to genomic center positions .bed.
+    cliplib.bed_process_bed_file(filt_in_bed, gen_cp_bed,
+                                 siteids2keep_dic=ids2keep_dic,
+                                 center_sites=True)
+    # Now map center position regions to transcriptome.
+    center_pos_out = args.out_folder + "/" + "transcript_center_pos_out"
+    cliplib.convert_genome_positions_to_transcriptome(gen_cp_bed, center_pos_out,
+                                                      args.in_gtf, tr_ids_dic)
+    # All unique hits (complete + incomplete).
+    cp_all_uniq_tr_hits_bed = center_pos_out + "/" + "transcript_hits_all_unique.bed"
+    cp_comp_tr_hits_bed = center_pos_out + "/" + "transcript_hits_complete.bed"
+
+    """
+    Get site ID / sequence ID combinations to keep.
+    We need these since mapping center positions to transcriptome can result
+    in sites which mapped uniquely using their full lengths before, but with
+    center positions could map to more than one exon / transcript. This
+    is due to the intersectBed_f overlap parameter set to 0.9, which does not
+    report hits if they do not overlap 90%+ with exons, while for center
+    position mapping this is always satisfied.
+    """
+    # Get site ID / sequence ID combinations to keep.
+    ids2keep2_dic = {}
+    for site_id in uniq_tr_seqid2siteid_dic:
+        seq_id = uniq_tr_seqid2siteid_dic[site_id]
+        if site_id in ids2keep_dic:
+            ids2keep2_dic[site_id] = seq_id
+    # Filter center position complete hits by site ID -> sequence ID combinations.
+    cliplib.bed_process_bed_file(cp_comp_tr_hits_bed, tr_uniq_cp_bed,
+                                 siteseqids2keep_dic=ids2keep2_dic)
+
+    # Transcript sequence lengths dictionary.
+    tr_seq_len_dic = cliplib.get_seq_lengths_from_seqs_dic(tr_seqs_dic)
+
+    # Extend center position transcript sites.
+    cliplib.bed_process_bed_file(tr_uniq_cp_bed, tr_uniq_cp_ext_bed,
+                                 seq_len_dic=tr_seq_len_dic,
+                                 ext_lr=args.us_ds_ext)
+
+    # Get .bed rows.
+    id2row_dic = cliplib.bed_read_rows_into_dic(tr_uniq_cp_ext_bed)
+    id2cprow_dic = cliplib.bed_read_rows_into_dic(tr_uniq_cp_bed)
+
+    # Count unique hits.
+    c_uniq_cp_hits = len(id2row_dic)
+    print("# unique transcript hits (center pos)      %i" %(c_uniq_cp_hits))
+    if not c_uniq_cp_hits:
+        print("ERROR: no unique transcript hits for given genomic .bed (center positions) and transcripts")
+        sys.exit()
+
+    # Get transcript sequences for sites (site ID -> transcript sequence).
+    id2seq_dic = cliplib.extract_transcript_sequences(id2row_dic, tr_seqs_dic,
+                                                      full_hits_only=False)
+    # Count # of full-length transcript sequences.
+    fl_l = 1 + args.us_ds_ext*2
+    c_fl = 0
+    c_all = len(id2seq_dic)
+    for site_id in id2seq_dic:
+        seq_l = len(id2seq_dic[site_id])
+        if seq_l == fl_l:
+            c_fl += 1
+    print("# extracted transcript region sequences    %i" %(c_all))
+    print("# full-length transcript region sequences  %i" %(c_fl))
+
+    # Output sequences to FASTA file.
+    cliplib.fasta_output_dic(id2seq_dic, tr_uniq_cp_ext_fa,
+                             split=True,
+                             split_size=50)
+
+    # Old sanity check, skip.
+    sanity_check = False
+    tmp_bed6 = args.out_folder + "/" + "genomic_sites.cp.no_sc.tmp.bed"
+    tmp_fa1 = args.out_folder + "/" + "genomic_sites.cp.tmp.fa";
+    if sanity_check:
+        print("Checking transcript against genomic center position nucleotides ... ")
+        # Make a second .bed file without "0" scores, for twoBitToFa compatibility.
+        cliplib.bed_process_bed_file(filt_in_bed, tmp_bed6,
+                                     siteids2keep_dic=ids2keep_dic,
+                                     zero_scores=True,
+                                     center_sites=True)
+        # Get center position nucleotides from transcript regions.
+        id2tcp_dic = cliplib.extract_transcript_sequences(id2cprow_dic, tr_seqs_dic,
+                                                          ext_lr=False,
+                                                          full_hits_only=False)
+        # Get center position nucleotides from genome.
+        cliplib.bed_extract_sequences_from_2bit(tmp_bed6, tmp_fa1, args.in_2bit)
+        id2gcp_dic = cliplib.read_fasta_into_dic(tmp_fa1)
+        # Compare center position nucleotides.
+        for site_id in id2tcp_dic:
+            tcp = id2tcp_dic[site_id]
+            assert site_id in id2gcp_dic, "site ID \"%s\" not in genomic center positions dictionary" %(site_id)
+            gcp = id2gcp_dic[site_id]
+            l_tcp = len(tcp)
+            l_gcp = len(gcp)
+            assert l_tcp == 1, "Transcript center position sequence length != 1 for site ID \"%s\" (%i != 1)" %(site_id, l_tcp)
+            assert l_gcp == 1, "Genomic center position sequence length != 1 for site ID \"%s\" (%i != 1)" %(site_id, l_gcp)
+            if not tcp == gcp:
+                print("WARNING: differing center position nucleotides for \"%s\" (%s != %s)" % (site_id, tcp, gcp))
+
+    """
+    Extract genomic context sequences.
+    By default, extract centered and extended genomic sequences (--seq-ext)
+    with unique transcript matches only.
+    If --all-gen-out is set, output all centered and extended genomic regions.
+
+    """
+
+    if args.all_gen_out:
+        # Center genomic sites.
+        cliplib.bed_process_bed_file(filt_in_bed, gen_cp_bed,
+                                     center_sites=True)
+    else:
+        # Center genomic sites.
+        cliplib.bed_process_bed_file(filt_in_bed, gen_cp_bed,
+                                     siteids2keep_dic=ids2keep2_dic,
+                                     center_sites=True)
+
+    # Extend genomic center position sites.
+    cliplib.bed_process_bed_file(filt_in_bed, gen_cp_ext_bed,
+                                 ext_lr=args.us_ds_ext,
+                                 center_sites=True)
+    # Extend genomic center position sites with zero scores for twoBitToFa.
+    tmp_bed7 = args.out_folder + "/" + "genomic_sites.cp.ext.no_sc.tmp.bed"
+    cliplib.bed_process_bed_file(filt_in_bed, tmp_bed7,
+                                 ext_lr=args.us_ds_ext,
+                                 zero_scores=True,
+                                 center_sites=True)
+    # Get extended genomic regions.
+    cliplib.bed_extract_sequences_from_2bit(tmp_bed7, gen_cp_ext_fa, args.in_2bit)
+
+    """
+    If args.add_out:
+        Output centered and extended sites and sequences for all
+        transcript matches from full-length mapping (unique + non-unique).
+
+    """
+    if args.add_out:
+        # Merge all complete and incomplete hits.
+        file_list = []
+        file_list.append(fl_comp_transcript_hits_bed)
+        file_list.append(fl_incomp_transcript_hits_bed)
+        merged_transcript_hits_tmp_bed = full_length_out + "/" + "merged_transcript_hits.tmp.bed"
+        merged_transcript_hits_cp_bed = full_length_out + "/" + "all_transcript_hits.cp.bed"
+        merged_transcript_hits_cp_ext_bed = full_length_out + "/" + "all_transcript_hits.cp.ext.bed"
+        merged_transcript_hits_cp_ext_fa = full_length_out + "/" + "all_transcript_hits.cp.ext.fa"
+        # Merge files.
+        cliplib.merge_files(file_list, merged_transcript_hits_tmp_bed)
+        # Center position sites.
+        cliplib.bed_process_bed_file(merged_transcript_hits_tmp_bed,
+                                     merged_transcript_hits_cp_bed,
+                                     center_sites=True)
+        # Extend sites.
+        cliplib.bed_process_bed_file(merged_transcript_hits_cp_bed,
+                                     merged_transcript_hits_cp_ext_bed,
+                                     ext_lr=args.us_ds_ext)
+        # Get transcript sequences.
+        trid2row_dic = cliplib.bed_read_rows_into_dic(merged_transcript_hits_cp_ext_bed)
+        trid2seq_dic = cliplib.extract_transcript_sequences(trid2row_dic, tr_seqs_dic)
+        # Output sequences to FASTA file.
+        cliplib.fasta_output_dic(trid2seq_dic, merged_transcript_hits_cp_ext_fa,
+                                 split=True,
+                                 split_size=50)
+        # Clean up.
+        if os.path.exists(merged_transcript_hits_tmp_bed):
+            os.remove(merged_transcript_hits_tmp_bed)
+
+    # Litter the street.
+    clean_up = True
+    if clean_up:
+        print("Removing temporary files ... ")
+        # Remove tmp files.
+        if os.path.exists(tmp_bed1):
+            os.remove(tmp_bed1)
+        if os.path.exists(tmp_bed2):
+            os.remove(tmp_bed2)
+        if os.path.exists(tmp_bed3):
+            os.remove(tmp_bed3)
+        if os.path.exists(tmp_bed4):
+            os.remove(tmp_bed4)
+        if os.path.exists(tmp_bed5):
+            os.remove(tmp_bed5)
+        if os.path.exists(tmp_bed6):
+            os.remove(tmp_bed6)
+        if os.path.exists(tmp_bed7):
+            os.remove(tmp_bed7)
+        if os.path.exists(tmp_fa1):
+            os.remove(tmp_fa1)
+        # Remove mapping folders.
+        if os.path.exists(full_length_out):
+            shutil.rmtree(full_length_out, ignore_errors=True)
+        if os.path.exists(center_pos_out):
+            shutil.rmtree(center_pos_out, ignore_errors=True)
+
+    # Output files report.
+    print("")
+    print("VARIOUS OUTPUT FILES")
+    print("====================")
+    print("Filtered genomic input sites .bed:\n%s" %(filt_in_bed))
+    print("Genomic exon regions .bed for all transcripts with hits:\n%s\n" %(hit_tr_exons_bed))
+
+    # Full-length transcript matches (unique+non-unique, complete+incomplete).
+    print("TRANSCRIPT SITES (FROM MAPPING OF FULL-LENGTH GENOMIC SITES)")
+    print("============================================================")
+    print("Complete matches (unique + non-unique) on transcripts .bed:\n%s" %(tr_fl_comp_bed))
+    print("Incomplete matches (unique + non-unique) on transcripts .bed:\n%s" %(tr_fl_incomp_bed))
+    print("Complete matches (unique only) on transcripts .bed:\n%s" %(tr_fl_uniq_comp_bed))
+    print("All matches (complete + incomplete, unique only) on transcripts .bed:\n%s" %(tr_fl_uniq_all_bed))
+    print("Mapping statistics for all transcripts with hits:\n%s\n" %(hit_tr_stats_out))
+
+    # Additional output files.
+    if args.add_out:
+        print("ADDITIONAL TRANSCRIPT FILES (UNIQUE+NON-UNIQUE MATCHES)")
+        print("=======================================================")
+        print("All matches on transcripts center positions .bed:\n%s" %(merged_transcript_hits_cp_bed))
+        print("All matches on transcripts center positions extended .bed:\n%s" %(merged_transcript_hits_cp_ext_bed))
+        print("All matches on transcripts center positions extended .fa:\n%s\n" %(merged_transcript_hits_cp_ext_fa))
+
+    # Unique transcript matches, center positioned, extended.
+    print("MERGED + EXTENDED TRANSCRIPT SITES (UNIQUE MATCHES ONLY)")
+    print("========================================================")
+    print("Unique transcript matches center positions .bed:\n%s" %(tr_uniq_cp_bed))
+    print("Unique transcript matches center positions extended .bed:\n%s" %(tr_uniq_cp_ext_bed))
+    print("Unique transcript matches center positions extended .fa:\n%s\n" %(tr_uniq_cp_ext_fa))
+
+    # Genomic sites corresponding to unique transcript matches, center positioned, extended.
+    if args.all_gen_out:
+        print("GENOMIC SITES (ALL FILTERED GENOMIC INPUT SITES)")
+        print("================================================")
+    else:
+        print("GENOMIC SITES (CORRESPONDING TO MERGED + EXTENDED TRANSCRIPT SITES)")
+        print("===================================================================")
+    print("Genomic sites center positions .bed:\n%s" %(gen_cp_bed))
+    print("Genomic sites center positions extended .bed:\n%s" %(gen_cp_ext_bed))
+    print("Genomic sites center positions extended .fa:\n%s\n" %(gen_cp_ext_fa))
+
+
+################################################################################
+
+def main_t2g(args):
+    """
+    Map --in BED transcript sites to genome.
+
+    """
+
+    print("Running for you in T2G mode ... ")
+
+    # Output folder.
+    if not os.path.exists(args.out_folder):
+        os.makedirs(args.out_folder)
+
+    # Output files.
+    filt_in_bed = args.out_folder + "/" + "transcript_sites.bed"
+    chr_lengths_file = args.out_folder + "/" + "chromosome_lengths.out"
+    gen_all_bed = args.out_folder + "/" + "genomic_hits.all.bed"
+    gen_unique_bed = args.out_folder + "/" + "genomic_hits.unique.bed"
+    gen_split_bed = args.out_folder + "/" + "genomic_hits.split.bed"
+    gen_cp_bed = args.out_folder + "/" + "genomic_hits.cp.bed"
+    gen_cp_ext_bed = args.out_folder + "/" + "genomic_sites.cp.ext.bed"
+    gen_cp_ext_fa = args.out_folder + "/" + "genomic_sites.cp.ext.fa"
+    tr_cp_bed = args.out_folder + "/" + "transcript_sites.cp.bed"
+    tr_cp_ext_bed = args.out_folder + "/" + "transcript_sites.cp.ext.bed"
+    tr_cp_ext_fa = args.out_folder + "/" + "transcript_sites.cp.ext.fa"
+    out_exon_regions_genome_bed = args.out_folder + "/" + "exon_regions_genome.bed"
+    out_exon_regions_transcript_bed = args.out_folder + "/" + "exon_regions_transcript.bed"
+    # Temp files.
+    tmp_bed1 = args.out_folder + "/" + "transcript_sites.filtered.tmp.bed"
+    tmp_bed2 = args.out_folder + "/" + "genomic_sites.cp.ext.zerosc.tmp.bed"
+
+    # Filter.
+    cliplib.bed_process_bed_file(args.in_bed, tmp_bed1,
+                                 score_thr=args.score_thr,
+                                 min_len=args.min_site_len,
+                                 max_len=args.max_site_len,
+                                 generate_unique_ids=args.gen_uniq_ids,
+                                 rev_filter=args.rev_filter)
+
+    # Get transcript IDs from --in BED file.
+    print("Read in transcript IDs from --in ... ")
+    tr_ids_dic = cliplib.bed_get_chromosome_ids(tmp_bed1)
+    print("# transcript IDs read in from --in:            %i" %(len(tr_ids_dic)))
+
+    # Extract transcript sequences from .2bit.
+    print("Extract transcript sequences using --gen and --gtf ... ")
+    tr_seqs_dic = cliplib.get_transcript_sequences_from_gtf(args.in_gtf, args.in_2bit,
+                                                            tr_ids_dic=tr_ids_dic)
+    # Get transcript lengths.
+    tr_len_dic = cliplib.get_seq_lengths_from_seqs_dic(tr_seqs_dic)
+    # Get chromosome lengths.
+    chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, chr_lengths_file)
+
+    # Remove transcript IDs for which sequence extraction failed.
+    for tr_id in tr_ids_dic:
+        if tr_id not in tr_seqs_dic:
+            print("WARNING: sequence extraction failed for transcript ID \"%s\"" %s(tr_id))
+            del tr_ids_dic[tr_id]
+    assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
+    print("# transcript IDs after sequence extraction:    %i" %(len(tr_ids_dic)))
+
+    # Filter --in BED allowing only transcripts with sequences.
+    cliplib.bed_process_bed_file(tmp_bed1, filt_in_bed,
+                                 seq_len_dic=tr_len_dic,
+                                 seqids2keep_dic=tr_ids_dic)
+    # Count sites.
+    c_sites_with_seq = cliplib.count_file_rows(filt_in_bed)
+    assert c_sites_with_seq, "ERROR: no transcript sites left after sequence extraction"
+    print("# transcript sites after sequence extraction:  %i" %(c_sites_with_seq))
+
+    # Map full length sites to genome (get split and full sites).
+    print("Mapping full length transcript sites to genome ... ")
+    site2hitc_dic = {}
+    cliplib.bed_convert_transcript_to_genomic_sites(filt_in_bed, args.in_gtf,
+                                                    args.out_folder,
+                                                    site2hitc_dic=site2hitc_dic,
+                                                    out_folder=True)
+    assert site2hitc_dic, "ERROR: site ID to hit count dictionary empty"
+
+    # Rename output files.
+    out_all_hits_bed = args.out_folder + "/" + "all_hits.bed"
+    out_unique_hits_bed = args.out_folder + "/" + "unique_hits.bed"
+    out_split_hits_bed = args.out_folder + "/" + "split_hits.bed"
+    cliplib.move_rename_file(out_all_hits_bed, gen_all_bed)
+    cliplib.move_rename_file(out_unique_hits_bed, gen_unique_bed)
+    cliplib.move_rename_file(out_split_hits_bed, gen_split_bed)
+
+    # Get hit counts and split numbers.
+    splitc_dic = {}
+    c_all_hits = 0
+    for site_id in site2hitc_dic:
+        hitc = site2hitc_dic[site_id]
+        c_all_hits += 1
+        if hitc in splitc_dic:
+            splitc_dic[hitc] += 1
+        else:
+            splitc_dic[hitc] = 1
+    # Report mapping stats (split numbers and hit counts).
+    print("# transcript sites mapped to genome:           %i" %(c_all_hits))
+    for hitc in splitc_dic:
+        if hitc == 1:
+            print("# transcript sites without split mapping:      %i" %(splitc_dic[hitc]))
+        else:
+            print("# transcript sites with split mapping (split in %i):  %i" %(hitc, splitc_dic[hitc]))
+
+    # Center sites before second mapping.
+    cliplib.bed_process_bed_file(filt_in_bed, tr_cp_bed,
+                                 seq_len_dic=tr_len_dic,
+                                 seqids2keep_dic=tr_ids_dic,
+                                 center_sites=True)
+    # Map again with center positions.
+    print("Mapping center-position transcript sites to genome ... ")
+    cliplib.bed_convert_transcript_to_genomic_sites(tr_cp_bed, args.in_gtf, gen_cp_bed)
+
+    # Check for same numbers.
+    c_tr_cp = cliplib.count_file_rows(tr_cp_bed)
+    c_gen_cp = cliplib.count_file_rows(gen_cp_bed)
+    assert c_tr_cp == c_gen_cp, "ERROR: center position transcript sites != center position genomic sites (%i != %i)" %(c_tr_cp, c_gen_cp)
+
+    print("# transcript site center positions mapped:     %i" %(c_gen_cp))
+
+    # Extend genomic center position sites.
+    cliplib.bed_process_bed_file(gen_cp_bed, gen_cp_ext_bed,
+                                 seq_len_dic=chr_len_dic,
+                                 ext_lr=args.us_ds_ext)
+    # Extend genomic center position sites with zero scores for twoBitToFa.
+    cliplib.bed_process_bed_file(gen_cp_bed, tmp_bed2,
+                                 seq_len_dic=chr_len_dic,
+                                 ext_lr=args.us_ds_ext,
+                                 zero_scores=True)
+    # Extract genomic sequences from .2bit.
+    cliplib.bed_extract_sequences_from_2bit(tmp_bed2, gen_cp_ext_fa, args.in_2bit)
+
+    # Extend transcript center sites.
+    cliplib.bed_process_bed_file(tr_cp_bed, tr_cp_ext_bed,
+                                 seq_len_dic=tr_len_dic,
+                                 ext_lr=args.us_ds_ext)
+
+    # Extract transcript sequences.
+    trid2row_dic = cliplib.bed_read_rows_into_dic(tr_cp_ext_bed)
+    # Get transcript sequences for sites (site ID -> transcript sequence).
+    trid2seq_dic = cliplib.extract_transcript_sequences(trid2row_dic, tr_seqs_dic)
+
+    # Count # of full-length transcript sequences.
+    fl_l = 1 + args.us_ds_ext*2
+    c_fl = 0
+    c_all = len(trid2seq_dic)
+    for site_id in trid2seq_dic:
+        seq_l = len(trid2seq_dic[site_id])
+        if seq_l == fl_l:
+            c_fl += 1
+    print("# extracted transcript region sequences:       %i" %(c_all))
+    print("# full-length transcript region sequences:     %i" %(c_fl))
+
+    # Output sequences to FASTA file.
+    cliplib.fasta_output_dic(trid2seq_dic, tr_cp_ext_fa,
+                             split=True,
+                             split_size=50)
+
+    # Take out the trash.
+    clean_up = True
+    if clean_up:
+        print("Removing temporary files ... ")
+        # Remove tmp files.
+        if os.path.exists(tmp_bed1):
+            os.remove(tmp_bed1)
+        if os.path.exists(tmp_bed2):
+            os.remove(tmp_bed2)
+
+    # Output files report.
+    print("")
+    print("TRANSCRIPT FILES")
+    print("================")
+    print("Filtered transcript sites .bed:\n%s" %(filt_in_bed))
+    print("Filtered transcript sites center positions .bed:\n%s" %(tr_cp_bed))
+    print("Filtered transcript sites extended .bed:\n%s" %(tr_cp_ext_bed))
+    print("Filtered transcript sites extended .fa:\n%s" %(tr_cp_ext_fa))
+    print("Transcript exon regions .bed:\n%s\n" %(out_exon_regions_transcript_bed))
+
+    print("GENOMIC FILES (FROM MAPPING FULL-LENGTH TRANSCRIPT SITES)")
+    print("=========================================================")
+    print("All genomic matches .bed:\n%s" %(gen_all_bed))
+    print("Full-length genomic matches .bed:\n%s" %(gen_unique_bed))
+    print("Split genomic matches .bed:\n%s" %(gen_split_bed))
+    print("Transcript genomic exon regions .bed:\n%s\n" %(out_exon_regions_genome_bed))
+
+    print("GENOMIC FILES (FROM MAPPING CENTERED TRANSCRIPT SITES)")
+    print("======================================================")
+    print("All genomic matches .bed:\n%s" %(gen_all_bed))
+    print("Genomic matches center positions .bed:\n%s" %(gen_cp_bed))
+    print("Genomic matches extended .bed:\n%s" %(gen_cp_ext_bed))
+    print("Genomic matches extended .fa:\n%s" %(gen_cp_ext_fa))
+
+
+################################################################################
+
+def main_lst(args):
+    """
+    Extract most prominent transcripts from GTF file and store IDs list
+    in args.out_file.
+
+    """
+
+    print("Running for you in LST mode ... ")
+
+    cliplib.gtf_extract_most_prominent_transcripts(args.in_gtf, args.out_file,
+                                                   strict=args.strict,
+                                                   min_len=args.min_len,
+                                                   add_infos=args.add_infos)
+
+
+################################################################################
+
+def main_eir(args):
+    """
+    Extract exon + intron regions from GTF, given a list of transcript IDs
+    to define the regions.
+
+    """
+
+    print("Running for you in EIR mode ... ")
+
+    # Read in transcript ID list.
+    tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
+    tr_ids_c = len(tr_ids_dic)
+    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    print("# transcript IDs read in:  %i" %(tr_ids_c))
+
+    # Extract exon + intron regions for given transcripts.
+    print("Extracting exon + intron regions for read-in transcript IDs ... ")
+    cliplib.gtf_extract_exon_bed(args.in_gtf, args.exon_out,
+                                 out_intron_bed=args.intron_out,
+                                 tr_ids_dic=tr_ids_dic)
+
+    # Count extracted regions.
+    c_exons = cliplib.count_file_rows(args.exon_out)
+    c_introns = cliplib.count_file_rows(args.intron_out)
+    # Report.
+    print("%i exon egions written to:\n%s" %(c_exons, args.exon_out))
+    print("%i intron regions written to:\n%s" %(c_introns, args.intron_out))
+
+
+################################################################################
+
+def main_int(args):
+    """
+    Get --in input sites overlapping with intron regions.
+
+    """
+
+    print("Running for you in INT mode ... ")
+
+    # Read in transcript ID list.
+    tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
+    tr_ids_c = len(tr_ids_dic)
+    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    print("# transcript IDs read in:                 %i" %(tr_ids_c))
+
+    # Count input files.
+    c_in = cliplib.count_file_rows(args.in_bed)
+    assert c_in, "ERROR: --in BED file \"%s\" is empty" %(args.in_bed)
+    print("# of --in input sites:                    %i" %(c_in))
+
+    # Generate .tmp files.
+    import uuid
+    random_id = uuid.uuid1()
+    tmp_bed1 = str(random_id) + ".filtered_input_sites.tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_bed2 = str(random_id) + ".exon_regions.tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_bed3 = str(random_id) + ".intron_regions.tmp.bed"
+
+    # Filter input sites.
+    print("Extracting intron regions for given transcript IDs ... ")
+    cliplib.bed_process_bed_file(args.in_bed, tmp_bed1,
+                                 score_thr=args.score_thr,
+                                 min_len=args.min_len,
+                                 max_len=args.max_len,
+                                 rev_filter=args.rev_filter)
+    # Count filtered sites.
+    c_in_filt = cliplib.count_file_rows(tmp_bed1)
+    assert c_in_filt, "ERROR: no --in sites remaining after filtering"
+    print("# of --in sites after filtering:          %i" %(c_in_filt))
+
+    # Extract exon+intron regions for given transcripts.
+    cliplib.gtf_extract_exon_bed(args.in_gtf, tmp_bed2,
+                                 out_intron_bed=tmp_bed3,
+                                 tr_ids_dic=tr_ids_dic)
+
+    # Overlap input sites with introns.
+    params = "-s -u -f %f" %(args.min_intron_ovlp)
+    cliplib.intersect_bed_files(tmp_bed1, tmp_bed3, params, args.out_bed)
+    # Count overlapping sites.
+    c_ovlp = cliplib.count_file_rows(args.out_bed)
+    assert c_ovlp, "ERROR: no --in sites overlapping with given intron regions"
+
+    # Litter the street.
+    clean_up = True
+    if clean_up:
+        # Remove tmp files.
+        if os.path.exists(tmp_bed1):
+            os.remove(tmp_bed1)
+        if os.path.exists(tmp_bed2):
+            os.remove(tmp_bed2)
+        if os.path.exists(tmp_bed3):
+            os.remove(tmp_bed3)
+
+    # Report.
+    print("# of --in sites overlappin with introns:  %i" %(c_ovlp))
+    print("Overlapping sites written to:\n%s" %(args.out_bed))
+
+
+################################################################################
+
+def main_exb(args):
+    """
+    Get CLIP peak regions from --in that are close to exon borders.
+    Exon borders defined by given transcripts list file.
+
+    """
+
+    print("Running for you in EXB mode ... ")
+
+    # Read in transcript ID list.
+    tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
+    tr_ids_c = len(tr_ids_dic)
+    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    print("# transcript IDs read in:  %i" %(tr_ids_c))
+
+    # Generate .tmp files.
+    import uuid
+    random_id = uuid.uuid1()
+    tmp_bed1 = str(random_id) + ".exon_regions.tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_bed2 = str(random_id) + ".overlapping_sites.tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_bed3 = str(random_id) + ".extended_sites.tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_bed4 = str(random_id) + ".base_overlaps.tmp.bed"
+
+    # Extract exon regions for given transcripts.
+    cliplib.gtf_extract_exon_bed(args.in_gtf, tmp_bed1,
+                                 tr_ids_dic=tr_ids_dic)
+
+    # Check .bed for content.
+    c_in = cliplib.count_file_rows(args.in_bed)
+    assert c_in, "ERROR: input .bed file \"%s\" is empty" %(args.in_bed)
+
+    # First get regions inside exons (overlapping >= 90 % with them).
+    params = "-s -u -wa -f 0.90"
+    cliplib.intersect_bed_files(args.in_bed, tmp_bed1, params, tmp_bed2)
+
+    # Filter and extend overlapping sites.
+    TMPOUT = open(tmp_bed3,"w")
+    c_ol = 0
+    id2len_dic = {}
+    id2stats_dic = {}
+    with open(tmp_bed2) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            seq_id = cols[0]
+            site_s = int(cols[1])
+            site_e = int(cols[2])
+            site_id = cols[3]
+            site_sc = float(cols[4])
+            site_pol = cols[5]
+            site_l = site_e - site_s
+            # Filter by site score.
+            if args.score_thr is not None:
+                if args.rev_filter:
+                    if site_sc > args.score_thr:
+                        continue
+                else:
+                    if site_sc < args.score_thr:
+                        continue
+            # Filter by site length.
+            if args.max_len:
+                if site_l > args.max_len:
+                    continue
+            if args.min_len:
+                if site_l < args.min_len:
+                    continue
+            # Check whether score is whole number.
+            if not site_sc % 1:
+                site_sc = int(site_sc)
+            # Conver to string.
+            new_sc = str(site_sc)
+            # Extend site.
+            new_s = site_s - args.max_dist - 1
+            new_e = site_e + args.max_dist + 1
+            new_l = new_e - new_s
+            id2len_dic[site_id] = new_l
+            c_ol += 1
+            # Store original region.
+            id2stats_dic[site_id] = "%s\t%i\t%i\t%s\t%s\t%s" %(seq_id,site_s,site_e,site_id,site_sc,site_pol)
+            # Output extended region.
+            TMPOUT.write("%s\t%i\t%i\t%s\t%s\t%s\n" % (seq_id,new_s,new_e,site_id,site_sc,site_pol))
+    f.close()
+    TMPOUT.close()
+
+    # Overlap sites with exons, get bases overlapping.
+    cliplib.intersect_bed_files(tmp_bed3, tmp_bed1, "-s", tmp_bed4)
+
+    # Output .bed.
+    OUT = open(args.out_bed,"w")
+    seen_dic = {}
+    # Number of sites close to exon ends.
+    c_close = 0
+
+    # Get sites within border range.
+    with open(tmp_bed4) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            site_s = int(cols[1])
+            site_e = int(cols[2])
+            site_id = cols[3]
+            if site_id in seen_dic:
+                continue
+            site_l = site_e - site_s
+            full_l = id2len_dic[site_id]
+            bed_row = id2stats_dic[site_id]
+            if not full_l == site_l:
+                c_close += 1
+                OUT.write("%s\n" %(bed_row))
+            seen_dic[site_id] = 1
+
+    clean_up = True
+    if clean_up:
+        # Remove tmp files.
+        if os.path.exists(tmp_bed1):
+            os.remove(tmp_bed1)
+        if os.path.exists(tmp_bed2):
+            os.remove(tmp_bed2)
+        if os.path.exists(tmp_bed3):
+            os.remove(tmp_bed3)
+        if os.path.exists(tmp_bed4):
+            os.remove(tmp_bed4)
+
+    # Report results.
+    print("exb output stats (post-filtering)")
+    print("=================================")
+    print("Number of --in regions:                                %i" %(c_in))
+    print("Number of --in regions overlapping with exon regions:  %i" %(c_ol))
+    print("Number of --in regions close to exon ends:             %i" %(c_close))
+    print("Regions close to exon ends written to:\n%s" %(args.out_bed))
+
+
+################################################################################
+
+if __name__ == '__main__':
+    # Setup argparse.
+    parser = setup_argument_parser()
+    # Print help if no parameter is set.
+    if len(sys.argv) < 2:
+        parser.print_help()
+        sys.exit()
+    # Read in command line arguments.
+    args = parser.parse_args()
+
+    # Some banner.
+    print("   _______   _______                __          __   ")
+    print("  / ___/ /  /  _/ _ \_______  ___  / /______ __/ /_  ")
+    print(" / /__/ /___/ // ___/ __/ _ \/ _ \/ __/ -_) \ / __/  ")
+    print(" \___/____/___/_/   \__/\___/_//_/\__/\__/_\_\\__/   ")
+    print("                                                     ")
+
+    # Check for Linux.
+    assert "linux" in sys.platform, "ERROR: please use Linux"
+    # Check tool availability.
+    assert cliplib.is_tool("bedtools"), "ERROR: bedtools not in PATH"
+    assert cliplib.is_tool("twoBitToFa"), "ERROR: twoBitToFa not in PATH"
+    assert cliplib.is_tool("twoBitInfo"), "twoBitInfo not in PATH"
+    # Check file inputs.
+    assert os.path.exists(args.in_gtf), "ERROR: --gtf GTF file \"%s\" not found" %(args.in_gtf)
+    if args.which != 'lst' and args.which != 't2g':
+        assert os.path.exists(args.in_tr_list), "ERROR: input transcript ID list file \"%s\" not found" %(args.in_tr_list)
+    if args.which != 'eir' and args.which != 'lst':
+        assert os.path.exists(args.in_bed), "ERROR: --in BED file \"%s\" not found" %(args.in_bed)
+        # Check .bed for content.
+        c_in_sites = cliplib.count_file_rows(args.in_bed)
+        assert c_in_sites, "ERROR: --in BED file \"%s\" is empty" %(args.in_bed)
+        # Check .bed for 6-column format.
+        assert cliplib.bed_check_six_col_format(args.in_bed), "ERROR: --in BED file \"%s\" appears to be not in 6-column .bed format" %(args.in_bed)
+        # Check for unique column 4 IDs.
+        if args.which == 'g2t' or args.which == 't2g':
+            if not args.gen_uniq_ids:
+                assert cliplib.bed_check_unique_ids(args.in_bed), "ERROR: --in BED file \"%s\" column 4 IDs not unique (change or use --gen-uniq-ids option)" %(args.in_bed)
+        else:
+            assert cliplib.bed_check_unique_ids(args.in_bed), "ERROR: --in BED file \"%s\" column 4 IDs not unique (change or use --gen-uniq-ids option)" %(args.in_bed)
+    if args.which == 'g2t' or args.which == 't2g':
+        assert os.path.exists(args.in_2bit), "ERROR: --gen .2bit file \"%s\" not found" %(args.in_2bit)
+    # Generate results output folder.
+    if args.which == 'g2t' or args.which == 't2g':
+        if not os.path.exists(args.out_folder):
+            os.makedirs(args.out_folder)
+        # Parameter log file.
+        pars_file = args.out_folder + "/parameters.log"
+        PARS = open(pars_file, "w")
+        for arg in vars(args):
+            PARS.write("%s\t%s\n" %(arg, str(getattr(args, arg))))
+        PARS.close()
+
+    # Run selected mode.
+    if args.which == 'g2t':
+        main_g2t(args)
+    elif args.which == 't2g':
+        main_t2g(args)
+    elif args.which == 'lst':
+        main_lst(args)
+    elif args.which == 'exb':
+        main_exb(args)
+    elif args.which == 'eir':
+        main_eir(args)
+    elif args.which == 'int':
+        main_int(args)
+
+################################################################################
+
+"""
+    print("args in namespace:")
+    for arg in vars(args):
+        print(arg)
+"""

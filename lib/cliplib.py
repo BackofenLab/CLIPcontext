@@ -227,9 +227,11 @@ def bed_process_bed_file(in_bed_file, out_bed_file,
                          center_sites=False,
                          ext_lr=False,
                          seq_len_dic=False,
-                         ids2keep_dic=False,
-                         seq_id_filter=False,
+                         siteids2keep_dic=False,
+                         seqids2keep_dic=False,
+                         siteseqids2keep_dic=False,
                          zero_scores=False,
+                         int_whole_nr=True,
                          rev_filter=False,
                          id_prefix="CLIP"):
 
@@ -286,14 +288,16 @@ def bed_process_bed_file(in_bed_file, out_bed_file,
             assert site_s < site_e, "ERROR: invalid region coordinates in .bed file \"%s\" (start >= end: %i >= %i)" % (in_bed_file, site_s, site_e)
             assert site_s >= 0 and site_e >= 1, "ERROR: invalid region coordinates in .bed file \"%s\" (start < 0 or end < 1)" % (in_bed_file)
             # Filter by IDs to keep dictionary.
-            if ids2keep_dic:
-                if site_id in ids2keep_dic:
-                    # Filter for specific site ID + sequence ID combinations.
-                    if seq_id_filter:
-                        if not seq_id == ids2keep_dic[site_id]:
-                            continue
-                else:
+            if siteids2keep_dic:
+                if not site_id in siteids2keep_dic:
                     continue
+            if seqids2keep_dic:
+                if not seq_id in seqids2keep_dic:
+                    continue
+            if siteseqids2keep_dic:
+                if site_id in siteseqids2keep_dic:
+                    if not seq_id == siteseqids2keep_dic[site_id]:
+                        continue
             # Filter by score.
             if score_thr is not None:
                 if rev_filter:
@@ -302,6 +306,10 @@ def bed_process_bed_file(in_bed_file, out_bed_file,
                 else:
                     if site_sc < score_thr:
                         continue
+            # Check whether score is whole number.
+            if int_whole_nr:
+                if not site_sc % 1:
+                    site_sc = int(site_sc)
             # Filter by minimum site length.
             if min_len:
                 if min_len > site_l:
@@ -474,20 +482,6 @@ def extract_transcript_sequences(bed_dic, seq_dic,
                 continue
         id2seq_dic[reg_id] = reg_seq
     return id2seq_dic
-
-################################################################################
-
-def output_seqs_dic_to_fasta(seqs_dic, out_fa):
-    """
-    Output a dictionary of FASTA sequences (FASTA ID -> sequence) to FASTA
-    file.
-
-    """
-    OUTFA = open(out_fa, "w")
-    assert seqs_dic, "given dictionary seems to be empty"
-    for seq_id in seqs_dic:
-        OUTFA.write(">%s\n%s\n" % (seq_id, seqs_dic[seq_id]))
-    OUTFA.close()
 
 
 ################################################################################
@@ -763,7 +757,7 @@ def bed_peaks_to_genomic_peaks(peak_file, genomic_peak_file, genomic_sites_bed):
             row = line.strip()
             cols = line.strip().split("\t")
             site_id = cols[3]
-            assert site_id not in id2row_dic, "column 4 IDs not unique in given .bed file \"%s\"" %(args.genomic_sites_bed)
+            assert site_id not in id2row_dic, "column 4 IDs not unique in given .bed file \"%s\"" %(genomic_sites_bed)
             id2row_dic[site_id] = row
     f.close()
 
@@ -1364,13 +1358,16 @@ def bed_merge_file_select_top_ids(in_merged_bed, id2sc_dic,
 
 ################################################################################
 
-def intersect_bed_files(a_file, b_file, params, out_file):
+def intersect_bed_files(a_file, b_file, params, out_file,
+                        sorted_out=False):
     """
     Intersect two .bed files, using intersectBed.
 
     """
 
     check_cmd = "intersectBed -a " + a_file + " -b " + b_file + " " + params + " > " + out_file
+    if sorted_out:
+        check_cmd = "intersectBed -a " + a_file + " -b " + b_file + " " + params + " | " + "sort -k1,1 -k2,2n > " + out_file
     output = subprocess.getoutput(check_cmd)
     error = False
     if output:
@@ -1866,6 +1863,7 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
 def convert_genome_positions_to_transcriptome(in_bed, out_folder,
                                               in_gtf, tr_ids_dic,
                                               intersectBed_f=1,
+                                              int_whole_nr=True,
                                               ignore_ids_dic=False):
     """
     Converts a BED file with genomic coordinates into a BED file with
@@ -2071,7 +2069,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     f.close()
 
     # Check for read-in features.
-    assert c_gtf_ex_feat, "no exon features read in from \"%s\"" %(in_gtf)
+    assert c_gtf_ex_feat, "ERROR: no exon features read in from \"%s\"" %(in_gtf)
 
     # Output transcript exon regions.
     OUTBED = open(transcript_exon_bed, "w")
@@ -2102,7 +2100,12 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
             site_sc = float(cols[4])
             site_pol = cols[5]
             assert site_pol == "+" or site_pol == "-", "invalid strand (in_bed: %s, site_pol: %s)" %(in_bed, site_pol)
-            id2site_sc_dic[site_id] = float(site_sc)
+            # Check whether score is whole number.
+            if int_whole_nr:
+                if not site_sc % 1:
+                    site_sc = int(site_sc)
+            # Store score and length of each genomic input site.
+            id2site_sc_dic[site_id] = site_sc
             id2site_len_dic[site_id] = site_e - site_s
     f.close()
 
@@ -2152,6 +2155,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
             exon_id = cols[9]
             exon_pol = cols[11]
             c_all += 1
+            # Count how many transcriptome matches site has.
             if site_id in c_site_hits_dic:
                 c_site_hits_dic[site_id] += 1
             else:
@@ -2174,8 +2178,10 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
             # Transcript ID.
             tr_id = exon_id_tr_dic[exon_id]
             # Store transcript ID for each site ID.
+            # In case site ID has several transcript hits, this will be overwritten,
+            # but we just use this dic for unique hits so no problem.
             site2tr_id_dic[site_id] = tr_id
-            # Store match for transcript ID yes.
+            # Store transcript ID has a match.
             match_tr_dic[tr_id] = 1
             # If site score round number, make integer.
             if not site_sc % 1:
@@ -2209,7 +2215,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     OUTINC.close()
     f.close()
 
-    # Output unique hits (two files, one only complete hits, other all).
+    # Output unique hits (two files, one for complete hits, other for all).
     OUTUNIALL = open(uniq_all_out, "w")
     OUTUNICOM = open(uniq_complete_out, "w")
 
@@ -2366,6 +2372,731 @@ def bed_merge_identical_regions(in_bed, out_bed,
         OUTBED.write("%s\t%s\t%s\t%s\t0\t%s\n" % (cols[0],cols[1],cols[2],reg_ids,cols[3]))
     OUTBED.close()
     assert c_out, "ERROR: nothing was output into out_bed"
+
+
+################################################################################
+
+def bed_convert_transcript_to_genomic_sites(in_bed, in_gtf, out_bed,
+                                            site2hitc_dic=None,
+                                            out_folder=False):
+    """
+    Dependencies:
+    bedtools (tested with 2.26.0)
+    gzip
+
+    Convert in_bed .bed file with transcript sites into genomic coordinates
+    sites file. in_bed column 1 transcript IDs have to be present in
+    in_gtf GTF file, from which genomic exon coordinates of the transcript
+    will get extracted.
+
+    site2hitc_dic:
+    A site2hitc_dic can be given, where site ID to hit count will be stored
+    for usage outside the function.
+
+    Output:
+    By default output to out_bed file, using id_p1, id_p2 IDs.
+    If out_folder=True, use out_bed name as folder name.
+    In this case, output these files to folder:
+    exon_regions_genome.bed
+    exon_regions_transcript.bed
+    complete_hits.bed
+    split_hits.bed
+    all_hits.bed
+
+    >>> test_gtf = "test_data/test_tr2gen.gtf"
+    >>> test_in_bed = "test_data/test_tr2gen.bed"
+    >>> test_out_exp_bed = "test_data/test_tr2gen.exp.bed"
+    >>> test_out_tmp_bed = "test_data/test_tr2gen.tmp.bed"
+    >>> bed_convert_transcript_to_genomic_sites(test_in_bed, test_gtf, test_out_tmp_bed)
+    >>> diff_two_files_identical(test_out_exp_bed, test_out_tmp_bed)
+    True
+    >>> test_out = "test_data/tr2gen_tmp_out"
+    >>> test_out_tmp_bed = "test_data/tr2gen_tmp_out/all_hits.bed"
+    >>> bed_convert_transcript_to_genomic_sites(test_in_bed, test_gtf, test_out, out_folder=True)
+    >>> diff_two_files_identical(test_out_exp_bed, test_out_tmp_bed)
+    True
+
+    """
+
+    # Generate .tmp files.
+    random_id = uuid.uuid1()
+    tmp_bed = str(random_id) + ".tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_out = str(random_id) + ".tmp.out"
+
+    # Output files if output_folder=True.
+    if out_folder:
+        if not os.path.exists(out_bed):
+            os.makedirs(out_bed)
+    out_exon_regions_genome_bed = out_bed + "/" + "exon_regions_genome.bed"
+    out_exon_regions_transcript_bed = out_bed + "/" + "exon_regions_transcript.bed"
+    out_unique_hits_bed = out_bed + "/" + "unique_hits.bed"
+    out_split_hits_bed = out_bed + "/" + "split_hits.bed"
+    out_all_hits_bed = out_bed + "/" + "all_hits.bed"
+
+    # Transcript IDs dic.
+    tr_ids_dic = bed_get_chromosome_ids(in_bed)
+
+    # Extract transcript exon regions from GTF and store as BED.
+    gtf_extract_exon_bed(in_gtf, tmp_bed, tr_ids_dic=tr_ids_dic)
+    if out_folder:
+        make_file_copy(tmp_bed, out_exon_regions_transcript_bed)
+
+    # Get exon region lengths.
+    exid2len_dic = bed_get_region_lengths(tmp_bed)
+
+    # Get exon numbers for each transcript.
+    tr_exc_dic = bed_get_transcript_exon_numbers(tmp_bed)
+
+    # Read in exon region stats.
+    id2chr_dic = {}
+    id2s_dic = {}
+    id2e_dic = {}
+    id2pol_dic = {}
+    exid2trid_dic = {}
+    with open(tmp_bed) as f:
+        for line in f:
+            row = line.strip()
+            cols = line.strip().split("\t")
+            chr_id = cols[0]
+            site_s = int(cols[1])
+            site_e = int(cols[2])
+            site_id = cols[3]
+            site_pol = cols[5]
+            id2chr_dic[site_id] = chr_id
+            id2s_dic[site_id] = site_s
+            id2e_dic[site_id] = site_e
+            id2pol_dic[site_id] = site_pol
+            if re.search(".+_e\d", site_id):
+                m = re.search("(.+)_e\d", site_id)
+                tr_id = m.group(1)
+                exid2trid_dic[site_id] = tr_id
+            else:
+                assert False, "ERROR: site ID \"%s\" missing added _e exon number" %(site_id)
+    f.close()
+
+    # Output exon regions with transcript coordinates.
+    OUTBED = open(tmp_bed, "w")
+    for tr_id in tr_exc_dic:
+        ex_c = tr_exc_dic[tr_id]
+        new_s = 0
+        for i in range(ex_c):
+            i += 1
+            ex_id = tr_id + "_e" + str(i)
+            gen_s = id2s_dic[ex_id]
+            gen_e = id2e_dic[ex_id]
+            ex_len = gen_e - gen_s
+            tr_s = new_s
+            tr_e = new_s + ex_len
+            OUTBED.write("%s\t%i\t%i\t%s\t0\t+\n" % (tr_id,tr_s,tr_e,ex_id))
+            new_s = tr_e
+    OUTBED.close()
+
+    if out_folder:
+        make_file_copy(tmp_bed, out_exon_regions_genome_bed)
+
+    # Overlap in_bed with tmp_bed.
+    params = "-wb"
+    intersect_bed_files(in_bed, tmp_bed, params, tmp_out,
+                        sorted_out=True)
+
+    # Read in transcript site overlaps with transcript exon regions.
+    site2c_dic = {}
+    # Dictionaries for later outputting unique + split hits separately.
+    siteid2pol_dic = {}
+    siteid2sc_dic = {}
+    partid2chrse_dic = {}
+    with open(tmp_out) as f:
+        for line in f:
+            row = line.strip()
+            cols = line.strip().split("\t")
+            tr_id = cols[0]
+            part_s = int(cols[1])
+            part_e = int(cols[2])
+            site_id = cols[3]
+            site_sc = cols[4]
+            ex_s = int(cols[7])
+            ex_e = int(cols[8])
+            ex_id = cols[9]
+            ex_pol = id2pol_dic[ex_id]
+            siteid2pol_dic[site_id] = ex_pol
+            siteid2sc_dic[site_id] = site_sc
+            if site_id in site2c_dic:
+                site2c_dic[site_id] += 1
+            else:
+                site2c_dic[site_id] = 1
+            # Hit part number.
+            hit_c = site2c_dic[site_id]
+            # Calculate genomic hit coordinates.
+            # Plus strand case.
+            gen_s = id2s_dic[ex_id] + part_s - ex_s
+            gen_e = id2s_dic[ex_id] + part_e - ex_s
+            # Minus strand case.
+            if ex_pol == "-":
+                gen_s = id2e_dic[ex_id] - part_e + ex_s
+                gen_e = id2e_dic[ex_id] - part_s + ex_s
+            # part ID.
+            part_id = site_id + "_p" + str(hit_c)
+            # Store chrse for each part ID.
+            chrse = "%s\t%i\t%i" %(id2chr_dic[ex_id],gen_s,gen_e)
+            partid2chrse_dic[part_id] = "%s\t%i\t%i" %(id2chr_dic[ex_id],gen_s,gen_e)
+
+    # Produce seperate output files for unique + split hits.
+    all_hits_bed = out_bed
+    if out_folder:
+        all_hits_bed = out_all_hits_bed
+    ALLBED = open(all_hits_bed, "w")
+    if out_folder:
+        UNIBED = open(out_unique_hits_bed, "w")
+        SPLBED = open(out_split_hits_bed, "w")
+        for site_id in site2c_dic:
+            hit_c = site2c_dic[site_id]
+            if site2hitc_dic is not None:
+                site2hitc_dic[site_id] = hit_c
+            site_pol = siteid2pol_dic[site_id]
+            site_sc = siteid2sc_dic[site_id]
+            # For unique hit use site ID, for split hits use part IDs.
+            if hit_c == 1:
+                # Unique hits.
+                part_id = site_id + "_p1"
+                UNIBED.write("%s\t%s\t%s\t%s\n" %(partid2chrse_dic[part_id],site_id,site_sc,site_pol))
+            else:
+                # Split hits.
+                for i in range(hit_c):
+                    i += 1
+                    part_id = site_id + "_p" + str(i)
+                    SPLBED.write("%s\t%s\t%s\t%s\n" %(partid2chrse_dic[part_id],part_id,site_sc,site_pol))
+    # Output all hits.
+    for site_id in site2c_dic:
+        hit_c = site2c_dic[site_id]
+        if site2hitc_dic is not None:
+            site2hitc_dic[site_id] = hit_c
+        site_pol = siteid2pol_dic[site_id]
+        site_sc = siteid2sc_dic[site_id]
+        # For unique hit use site ID, for split hits use part IDs.
+        if hit_c == 1:
+            # Unique hits.
+            part_id = site_id + "_p1"
+            ALLBED.write("%s\t%s\t%s\t%s\n" %(partid2chrse_dic[part_id],site_id,site_sc,site_pol))
+        else:
+            # Split hits.
+            for i in range(hit_c):
+                i += 1
+                part_id = site_id + "_p" + str(i)
+                ALLBED.write("%s\t%s\t%s\t%s\n" %(partid2chrse_dic[part_id],part_id,site_sc,site_pol))
+
+    # Delete tmp files.
+    if os.path.exists(tmp_bed):
+        os.remove(tmp_bed)
+    if os.path.exists(tmp_out):
+        os.remove(tmp_out)
+
+
+################################################################################
+
+def bed_get_chromosome_ids(bed_file):
+    """
+    Read in .bed file, return chromosome IDs (column 1 IDs).
+    Return dic with chromosome ID -> count mapping.
+
+    >>> test_file = "test_data/test6.bed"
+    >>> bed_get_chromosome_ids(test_file)
+    {'chr1': 2, 'chr2': 2, 'chr3': 1}
+
+    """
+    ids_dic = {}
+    with open(bed_file) as f:
+        for line in f:
+            row = line.strip()
+            cols = line.strip().split("\t")
+            chr_id = cols[0]
+            if chr_id in ids_dic:
+                ids_dic[chr_id] += 1
+            else:
+                ids_dic[chr_id] = 1
+    f.closed
+    assert ids_dic, "No chromosome IDs read into dictionary (input file \"%s\" empty or malformatted?)" % (bed_file)
+    return ids_dic
+
+
+################################################################################
+
+def bed_get_transcript_exon_numbers(in_bed):
+    """
+    Get number of exons for each transcript from in_bed BED file with
+    transcript exon regions, with ID format:
+    transcriptid_e1 (exon 1), transcriptid_e1 (exon 2)
+    This is the output format from gtf_extract_exon_bed(), so both can
+    be used in combination.
+
+    >>> in_bed = "test_data/test6.bed"
+    >>> bed_get_transcript_exon_numbers(in_bed)
+    {'ENST1': 2, 'ENST2': 2, 'ENST3': 1}
+
+    """
+    tr_exc_dic = {}
+    # Open input .bed file.
+    with open(in_bed) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            site_id = cols[3]
+            if re.search(".+_e\d", site_id):
+                m = re.search("(.+)_e\d", site_id)
+                tr_id = m.group(1)
+                if tr_id not in tr_exc_dic:
+                    tr_exc_dic[tr_id] = 1
+                else:
+                    tr_exc_dic[tr_id] += 1
+            else:
+                assert False, "ERROR: site ID \"%s\" missing added _e exon number" %(site_id)
+    f.close()
+    assert tr_exc_dic, "ERROR: nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
+    return tr_exc_dic
+
+
+################################################################################
+
+def get_transcript_sequences_from_gtf(in_gtf, in_2bit,
+                                      tr_ids_dic=False):
+    """
+    Get spliced transcript sequences based on in_gtf annotations. For
+    transcripts with > 1 exon, concatenate the exon sequences to build
+    the transcript sequence. If one exon is missing / not extracted or
+    if extracted lengths don't fit, the transcript sequence will be
+    skipped / not output.
+    Return dictionary with transcript_id -> sequence mapping.
+
+    tr_ids_dic:
+    Defines transcript IDs for which sequence should be extracted.
+
+    """
+    # Generate .tmp files.
+    random_id = uuid.uuid1()
+    tmp_bed = str(random_id) + ".tmp.bed"
+    random_id = uuid.uuid1()
+    tmp_fa = str(random_id) + ".tmp.fa"
+
+    # Transcript sequences dic.
+    tr_seqs_dic = {}
+
+    # Extract transcript exon regions from GTF and store as BED.
+    gtf_extract_exon_bed(in_gtf, tmp_bed, tr_ids_dic=tr_ids_dic)
+
+    # Extract exon region sequences from .2bit.
+    bed_extract_sequences_from_2bit(tmp_bed, tmp_fa, in_2bit)
+
+    # Get transcript lengths from tmp_bed for comparison.
+    tr_len_dic = bed_get_transcript_lengths_from_exon_regions(tmp_bed)
+    # Get exon numbers for each transcript.
+    tr_exc_dic = bed_get_transcript_exon_numbers(tmp_bed)
+
+    # Read in sequences.
+    exon_seqs_dic = read_fasta_into_dic(tmp_fa)
+
+    # Concatenate exon region sequences.
+    for tr_id in tr_exc_dic:
+        ex_c = tr_exc_dic[tr_id]
+        for i in range(ex_c):
+            i += 1
+            ex_id = tr_id + "_e" + str(i)
+            if ex_id in exon_seqs_dic:
+                ex_seq = exon_seqs_dic[ex_id]
+                if tr_id not in tr_seqs_dic:
+                    tr_seqs_dic[tr_id] = ex_seq
+                else:
+                    tr_seqs_dic[tr_id] += ex_seq
+            else:
+                print("WARNING: no sequence extracted for exon ID \"%s\". Skipping \"%s\" .. " %(ex_id, tr_id))
+                if tr_id in tr_seqs_dic:
+                    del tr_seqs_dic[tr_id]
+                break
+    # Checks.
+    assert tr_seqs_dic, "ERROR: tr_seqs_dic empty (no FASTA sequences extracted?)"
+    for tr_id in tr_seqs_dic:
+        tr_len = len(tr_seqs_dic[tr_id])
+        exp_len = tr_len_dic[tr_id]
+        assert tr_len == exp_len, "ERROR: BED transcript length != FASTA transcript length for \"%s\"" %(tr_id)
+
+    # Delete tmp files.
+    if os.path.exists(tmp_bed):
+        os.remove(tmp_bed)
+    if os.path.exists(tmp_fa):
+        os.remove(tmp_fa)
+
+    # Return transcript sequences dic constructed from exon sequences.
+    return tr_seqs_dic
+
+
+################################################################################
+
+def bed_get_transcript_lengths_from_exon_regions(in_bed):
+    """
+    Get spliced transcript lengths from in_bed BED file with transcript
+    exon regions, with ID format:
+    transcriptid_e1 (exon 1), transcriptid_e1 (exon 2)
+    This is the output format from gtf_extract_exon_bed(), so both can
+    be used in combination.
+
+    >>> in_bed = "test_data/test6.bed"
+    >>> bed_get_transcript_lengths_from_exon_regions(in_bed)
+    {'ENST1': 4000, 'ENST2': 1500, 'ENST3': 2500}
+
+    """
+    tr_len_dic = {}
+    # Open input .bed file.
+    with open(in_bed) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            site_s = int(cols[1])
+            site_e = int(cols[2])
+            site_id = cols[3]
+            site_len = site_e - site_s
+            if re.search(".+_e\d", site_id):
+                m = re.search("(.+)_e\d", site_id)
+                tr_id = m.group(1)
+                if tr_id not in tr_len_dic:
+                    tr_len_dic[tr_id] = site_len
+                else:
+                    tr_len_dic[tr_id] += site_len
+            else:
+                assert False, "ERROR: site ID \"%s\" missing added _e exon number" %(site_id)
+    f.close()
+    assert tr_len_dic, "ERROR: nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
+    return tr_len_dic
+
+
+################################################################################
+
+def get_chromosome_lengths_from_2bit(in_2bit, out_lengths):
+    """
+    Get chromosome lengths from in_2bit .2bit file. Write lengths
+    to out_lengths, with format:
+    chr1	248956422
+    chr10	133797422
+    chr11	135086622
+    ...
+    Also return a dictionary with key=chr_id and value=chr_length.
+
+    """
+
+    # Check for twoBitInfo.
+    assert is_tool("twoBitInfo"), "twoBitInfo not in PATH"
+
+    # Run twoBitInfo and check.
+    check_cmd = "twoBitInfo " + in_2bit + " " + out_lengths
+    output = subprocess.getoutput(check_cmd)
+    error = False
+    if output:
+        error = True
+    assert error == False, "twoBitInfo is complaining:\n%s\n%s" %(check_cmd, output)
+
+    # Read in lengths into dictionary.
+    chr_len_dic = {}
+    with open(out_lengths) as f:
+        for line in f:
+            row = line.strip()
+            cols = line.strip().split("\t")
+            chr_id = cols[0]
+            chr_l = int(cols[1])
+            assert chr_id not in chr_len_dic, "ERROR: non-unique chromosome ID \"%s\" encountered in \"%s\"" %(chr_id, out_lengths)
+            chr_len_dic[chr_id] = chr_l
+    f.closed
+    assert chr_len_dic, "ERROR: chr_len_dic empty (\"%s\" empty?)" %(out_lengths)
+
+    # Return chromosome lengths dic.
+    return chr_len_dic
+
+
+################################################################################
+
+def move_rename_file(in_file, out_file):
+    """
+    Move / rename in_file to out_file.
+
+    """
+    check_cmd = "mv " + in_file + " " + out_file
+    assert in_file != out_file, "mv does not like to mv file into same file (%s)" %(check_cmd)
+    output = subprocess.getoutput(check_cmd)
+    error = False
+    if output:
+        error = True
+    assert error == False, "mv did not like your input (in_file: %s, out_file: %s):\n%s" %(in_file, out_file, output)
+
+
+################################################################################
+
+def merge_files(files_list, out_file):
+    """
+    Merge list of files into one output file.
+
+    """
+    assert files_list, "ERROR: given files_list is empty"
+    for f in files_list:
+        assert os.path.isfile(f), "ERROR: list file \"%s\" not found" % (f)
+        assert f != out_file, "cat does not like to cat file into same file (%s)" %(check_cmd)
+        check_cmd = "cat " + f + " >> " + out_file
+        output = subprocess.getoutput(check_cmd)
+        error = False
+        if output:
+            error = True
+        assert error == False, "cat did not like your input (in_file: %s, out_file: %s):\n%s" %(f, out_file, output)
+
+
+################################################################################
+
+def fasta_output_dic(fasta_dic, fasta_out,
+                     split=False,
+                     split_size=60):
+    """
+    Output FASTA sequences dictionary (sequence_id -> sequence) to fasta_out.
+
+    split        Split FASTA sequence for output to file
+    split_size   Split size
+
+    >>> fasta_dic = {'seq1': 'ACGTACGTACGTAC', 'seq2': 'ACGT'}
+    >>> split_size = 4
+    >>> fasta_exp = "test_data/test5.exp.fa"
+    >>> fasta_out = "test_data/test5.tmp.fa"
+    >>> fasta_output_dic(fasta_dic, fasta_out, split=True, split_size=split_size)
+    >>> diff_two_files_identical(fasta_exp, fasta_out)
+    True
+
+    """
+    # Check.
+    assert fasta_dic, "ERROR: given fasta_dic empty"
+    # Write sequences to FASTA file.
+    OUTFA = open(fasta_out,"w")
+    for seq_id in fasta_dic:
+        seq = fasta_dic[seq_id]
+        if split:
+            OUTFA.write(">%s\n" %(seq_id))
+            for i in range(0, len(seq), split_size):
+                OUTFA.write("%s\n" %((seq[i:i+split_size])))
+        else:
+            OUTFA.write(">%s\n%s\n" %(seq_id, seq))
+    OUTFA.close()
+
+
+################################################################################
+
+def gtf_get_transcript_lengths(in_gtf,
+                               tr2exc_dic=None):
+    """
+    Get transcript lengths (= length of their exons, not unspliced length!)
+    from GTF file.
+
+    >>> in_gtf = "test_data/map_test_in.gtf"
+    >>> gtf_get_transcript_lengths(in_gtf)
+    {'ENST001': 2000, 'ENST002': 2000}
+
+    """
+    # Transcript ID to exonic length dictionary.
+    tr2len_dic = {}
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else:
+        f = open(in_gtf, "r")
+    for line in f:
+        # Skip header.
+        if re.search("^#", line):
+            continue
+        cols = line.strip().split("\t")
+        feature = cols[2]
+        feat_s = int(cols[3])
+        feat_e = int(cols[4])
+        infos = cols[8]
+        if not feature == "exon":
+            continue
+        # Extract transcript ID.
+        m = re.search('transcript_id "(.+?)"', infos)
+        assert m, "transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        tr_id = m.group(1)
+        # Sum up length.
+        ex_len = feat_e - feat_s + 1
+        if not tr_id in tr2len_dic:
+            tr2len_dic[tr_id] = ex_len
+        else:
+            tr2len_dic[tr_id] += ex_len
+        if tr2exc_dic is not None:
+            if not tr_id in tr2exc_dic:
+                tr2exc_dic[tr_id] = 1
+            else:
+                tr2exc_dic[tr_id] += 1
+    f.close()
+    assert tr2len_dic, "No IDs read into dictionary (input file \"%s\" empty or malformatted?)" % (in_gtf)
+    return tr2len_dic
+
+
+################################################################################
+
+def gtf_extract_most_prominent_transcripts(in_gtf, out_file,
+                                           strict=False,
+                                           min_len=False,
+                                           add_infos=False):
+    """
+    Extract most prominent transcripts list from in_gtf.
+
+    in_gtf:
+    Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)
+    NOTE: tested with Ensembl GTF files, expects transcript
+    support level (TSL) information.
+    out_file:
+    File to output transcript IDs (optionally with add_infos)
+    min_len:
+    Accept only transcripts with length >= --min-len
+    strict:
+    Accept only transcripts with transcript support level (TSL) 1-5
+    add_infos:
+    Add additional information columns (gene ID, TSL, length) to out_list
+    output file.
+
+    """
+
+    # Comparison dictionary.
+    id2sc = {}
+    for i in range(5):
+        pos = i + 1
+        pos_str = "%i" %(pos)
+        id2sc[pos_str] = pos
+    id2sc["NA"] = 6
+
+    if strict:
+        print("Strict transcript selection enabled ... ")
+    if add_infos:
+        print("Additional transcript infos in output file enabled ... ")
+
+    # Read in transcript length (exonic regions).
+    print("Read in transcript lengths (exonic lengths) from GTF ... ")
+    tr2exc_dic = {}
+    tr2len_dic = gtf_get_transcript_lengths(in_gtf, tr2exc_dic=tr2exc_dic)
+    assert tr2len_dic, "ERROR: no transcript lengths read in from --gtf (invalid file format?)"
+    print("# transcripts read in:  %i" %(len(tr2len_dic)))
+
+    # Store most prominent transcript.
+    g2tr_id = {}
+    g2tr_tsl = {}
+    g2tr_len = {}
+    g2tr_bt = {}
+    g2gn = {}
+    g2gbt = {}
+
+    print("Extract most prominent transcripts ... ")
+
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else:
+        f = open(in_gtf, "r")
+    for line in f:
+        # Skip header.
+        if re.search("^#", line):
+            continue
+        cols = line.strip().split("\t")
+        chr_id = cols[0]
+        feature = cols[2]
+        feat_s = int(cols[3])
+        feat_e = int(cols[4])
+        feat_pol = cols[6]
+        infos = cols[8]
+        if not feature == "transcript":
+            continue
+
+        # Extract gene ID.
+        m = re.search('gene_id "(.+?)"', infos)
+        assert m, "gene_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        gene_id = m.group(1)
+        # Extract transcript ID.
+        m = re.search('transcript_id "(.+?)"', infos)
+        assert m, "transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        tr_id = m.group(1)
+        # Extract gene name.
+        m = re.search('gene_name "(.+?)"', infos)
+        assert m, "gene_name entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        gene_name = m.group(1)
+        # Extract gene biotype.
+        m = re.search('gene_biotype "(.+?)"', infos)
+        assert m, "gene_biotype entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        gene_biotype = m.group(1)
+        # Extract transcript biotype.
+        m = re.search('transcript_biotype "(.+?)"', infos)
+        assert m, "transcript_biotype entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        tr_biotype = m.group(1)
+
+        # Transcript length.
+        tr_len = tr2len_dic[tr_id]
+        # Gene name.
+        g2gn[gene_id] = gene_name
+        # Gene biotype.
+        g2gbt[gene_id] = gene_biotype
+
+        # Look for basic tag.
+        m = re.search('tag "basic"', infos)
+        if not m:
+            continue
+        # Get transcript support level (TSL).
+        m = re.search('transcript_support_level "(.+?)"', infos)
+        tsl_id = "NA"
+        if m:
+            tsl_id = m.group(1)
+            if re.search("assigned to previous", tsl_id):
+                m = re.search("(.+?) \(", tsl_id)
+                tsl_id = m.group(1)
+
+        # More filtering.
+        if strict:
+            if tsl_id == "NA":
+                continue
+        if min_len:
+            if tr_len < min_len:
+                continue
+
+        # Update most prominent transcript.
+        if not gene_id in g2tr_id:
+            g2tr_id[gene_id] = tr_id
+            g2tr_len[gene_id] = tr_len
+            g2tr_tsl[gene_id] = tsl_id
+            g2tr_bt[gene_id] = tr_biotype
+        else:
+            if id2sc[tsl_id] < id2sc[g2tr_tsl[gene_id]]:
+                g2tr_id[gene_id] = tr_id
+                g2tr_len[gene_id] = tr_len
+                g2tr_tsl[gene_id] = tsl_id
+                g2tr_bt[gene_id] = tr_biotype
+            elif id2sc[tsl_id] == id2sc[g2tr_tsl[gene_id]]:
+                if tr_len > g2tr_len[gene_id]:
+                    g2tr_id[gene_id] = tr_id
+                    g2tr_len[gene_id] = tr_len
+                    g2tr_tsl[gene_id] = tsl_id
+                    g2tr_bt[gene_id] = tr_biotype
+    f.close()
+
+    assert g2tr_id, "No IDs read into dictionary (input file \"%s\" empty or malformatted?)" % (in_gtf)
+    c_prom_tr = len(g2tr_id)
+    print("Number of selected transcripts: %i" %(c_prom_tr))
+
+    # Output transcript IDs list.
+    OUT = open(out_file, "w")
+    if add_infos:
+        OUT.write("gene_id\tgene_name\tgene_biotype\ttr_id\ttr_biotype\ttr_len\ttr_exc\ttsl\n")
+    for gene_id in g2tr_id:
+        tr_id = g2tr_id[gene_id]
+        tr_len = g2tr_len[gene_id]
+        tsl_id = g2tr_tsl[gene_id]
+        tr_bt = g2tr_bt[gene_id]
+        tr_exc = tr2exc_dic[tr_id]
+        gene_name = g2gn[gene_id]
+        gene_bt = g2gbt[gene_id]
+        if add_infos:
+            OUT.write("%s\t%s\t%s\t%s\t%s\t%i\t%i\t%s\n" % (gene_id,gene_name,gene_bt,tr_id,tr_bt,tr_len,tr_exc,tsl_id))
+        else:
+            OUT.write("%s\n" % (tr_id))
+    OUT.close()
+
+    if add_infos:
+        print("%i transcript IDs + additional infos written to:\n%s" %(c_prom_tr, out_file))
+    else:
+        print("%i transcript IDs written to:\n%s" %(c_prom_tr, out_file))
 
 
 ################################################################################
