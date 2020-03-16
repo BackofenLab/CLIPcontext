@@ -221,7 +221,7 @@ test_out/genomic_sites.cp.ext.fa
 ```
 Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
 
-### G2T
+### T2G
 
 The following command line arguments are available in **T2G** mode:
 
