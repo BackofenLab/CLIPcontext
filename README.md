@@ -20,7 +20,7 @@ In **G2T** mode, CLIPcontext essentially takes care of the following tasks:
 
 In **T2G** mode, CLIPcontext maps transcript binding sites back to the genome. Again, context sequence sets (BED regions + FASTA sequences) are extracted for both genomic and transcript context. Both full and split matches (if sites overlap exon borders) are output.
 
-### lst
+### LST
 
 In **LST** mode, CLIPcontext extracts the most prominent transcript for each gene from a given GTF file, producing a list of transcript IDs. The output transcript IDs list file can then be used as input (--tr) for the other modes. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. Note that Ensembl GTF files were used for testing, and that due to possible differences in formatting, other GTF files might not work. 
 
@@ -83,65 +83,99 @@ CLIPcontext will output an overview of the files produced at the end of the run 
 
 ## Documentation
 
-### Command line arguments
 
-CLIPcontext command line arguments are grouped into required (mandatory) and optional arguments:
+An overview of the modes offered by CLIPcontext can be obtained by:
 
 ```
-python CLIPcontext.py -h
-usage: CLIPcontext.py [-h] --in str --out str --fa str --tr str --gtf str
-                      --gen str [--thr float] [--min-len int] [--max-len int]
-                      [--min-exon-ol float] [--seq-ext int] [--rev-filter]
-                      [--merge-ext int] [--merge-all] [--gen-uniq-ids]
+python clipcontext -h
+usage: clipcontext [-h] {g2t,t2g,lst,int,exb,eir} ...
 
-CLIPcontext takes genomic RBP binding regions identified by CLIP-seq, maps
-them to the transcriptome, and retrieves the region sequences with both
-genomic and transcript sequence context.
+CLIPcontext tool suite for mapping RBP binding regions to transcriptome or
+genome. Several modes are available: mapping from genome to transcriptome
+(g2t), transcriptome to genome (t2g), as well as additional modes for
+extracting sites near exon borders (exb), a list of most prominent transcripts
+(lst), intron-overlapping sites (int), or intron + exon regions for a given
+set of transcripts (eir).
 
-REQUIRED ARGUMENTS:
-  --in str             Genomic regions (hg38) BED file (6-column format)
-  --out str            Output results folder
-  --fa str             Transcript sequences FASTA file (.fa or .fa.gz)
-  --tr str             Transcript sequence IDs list file
-  --gtf str            Genomic annotation (hg38) GTF file (.gtf or .gtf.gz)
-  --gen str            Genome sequence (hg38) .2bit file
+positional arguments:
+  {g2t,t2g,lst,int,exb,eir}
+                        Program modes
+    g2t                 Map genomic sites to transcript sites
+    t2g                 Map transcript sites to genomic sites
+    lst                 Get list of most prominent transcripts
+    int                 Get sites overlapping with introns
+    exb                 Get sites near exon borders
+    eir                 Get exon and intron regions
 
-OPTIONAL ARGUMENTS:
-  -h, --help           Print help message
-  --thr float          Site score threshold for filtering -i bed_file
-                       (default: None)
-  --rev-filter         Reverse filtering (keep values <= threshold and prefer
-                       sites with smaller values) (default: false)
-  --min-len int        Minimum input site length for filtering -i bed_file
-                       (default: False)
-  --max-len int        Maximum input site length for filtering -i bed_file
-                       (default: False)
-  --min-exon-ol float  Minimum exon overlap of a site to be reported as
-                       transcript hit (intersectBed -f parameter) (default:
-                       0.9)
-  --seq-ext int        Up- and downstream extension of centered sites for
-                       context sequence extraction (default: 30)
-  --merge-ext int      Extend regions mapped to transcripts by --merge-ext
-                       before running mergeBed to merge overlapping regions
-                       (default: 10)
-  --merge-all          Merge all overlapping transcript sites extended by
-                       --merge-ext (default: only merge sites overlapping at
-                       exon borders) (default: False)
-  --gen-uniq-ids       Generate unique column 4 IDs for -i .bed file entries
-                       (default: False)
+optional arguments:
+  -h, --help            show this help message and exit
+
 ```
-The required arguments comprise the necessary input files (--in genomic RBP binding regions, --fa transcript sequences, --gtf genomic annotations, --gen .2bit genomic sequences, --tr transcript IDs list) and the output folder (--out) to store all files produced during the run.
-Optional arguments are provided for filtering the input .bed sites (--thr, --rev-filter, --min-len, --max-len), controlling the exon overlap amount (--min-exon-ol), the context sequence extension (--seq-ext), and the merging of nearby sites (--merge-ext, --merge-all). In case the input .bed file does not have unique column 4 IDs, new ones can be generated by --gen-uniq-ids.
 
-### Algorithm description
+### G2T
 
-CLIPcontext first reads in the transcript IDs (--tr) and extracts the corresponding sequences from the --fa FASTA file. Transcript IDs without corresponding sequence will be ignored, thus also genomic regions that map to these transcripts. 
-After optionally filtering the input sites (--in) by score or length, the full-length sites are mapped to the given set of transcripts. This is mainly done to identify regions at exon borders. CLIPcontext performs mapping to the transcriptome only for genomic sites that show considerable overlap with an exonic region (>= 90%, --min-exon-ol 0.9). Identified border regions are merged if they overlap after applying --merge-ext (i.e., for each overlapping set of sites select the site with the highest score). Merging is done since for RBPs that bind to exonic regions, peaks called at adjacent exon ends often originate from the same binding event. In case all overlapping sites should be merged (not only sites at exon borders), use --merge-all. Only sites that map to a single exonic region (uniquely mapped sites) are kept.
-Merged and uniquely mapped sites are then mapped again to the transcriptome, this time only taking their center positions for mapping. After center-position mapping, extension by --seq-ext is performed for both transcript sites and 
-genomic sites to get both transcript and genomic context sequences. Transcript regions without full extension indicate their location near transcript ends.
-A number of sanity checks are performed throughout the script. For example, extracted transcript center position nucleotides are compared with genomic center position nucleotides to check for correct sequence extraction.
+The following command line arguments are available in **G2T** mode:
 
-At the end of the run, CLIPcontext prints an overview with short discriptions for each output file (--out test_out):
+```
+python clipcontext g2t -h
+usage: clipcontext g2t [-h] --in str --out str --tr str --gtf str --gen str
+                       [--thr float] [--rev-filter] [--min-len int]
+                       [--max-len int] [--min-exon-ol float]
+                       [--merge-mode {1,2,3}] [--merge-ext int] [--add-out]
+                       [--seq-ext int] [--all-gen-out] [--gen-uniq-ids]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --thr float           Site score threshold for filtering --in BED file
+                        (default: None)
+  --rev-filter          Reverse filtering (keep values <= threshold and prefer
+                        sites with smaller values) (default: False)
+  --min-len int         Minimum input site length for filtering --in BED file
+                        (default: False)
+  --max-len int         Maximum input site length for filtering --in BED file
+                        (default: False)
+  --min-exon-ol float   Minimum exon overlap of a site to be reported as
+                        transcript hit (intersectBed -f parameter) (default:
+                        0.9)
+  --merge-mode {1,2,3}  Defines how to merge overlapping transcript sites
+                        (overlap controlled by --merge-ext). (1) only merge
+                        sites overlapping at exon borders, (2) merge all
+                        overlapping sites, (3) do NOT merge overlapping sites
+                        (default: 1)
+  --merge-ext int       Extend regions mapped to transcripts by --merge-ext
+                        before running mergeBed to merge overlapping regions
+                        (default: 10)
+  --add-out             Output centered and extended sites and sequences for
+                        all transcript matches (unique + non-unique) (default:
+                        False)
+  --seq-ext int         Up- and downstream extension of centered sites for
+                        context sequence extraction (default: 30)
+  --all-gen-out         Output all centered and extended genomic regions,
+                        instead of only the ones with unique transcript
+                        matches (default: False)
+  --gen-uniq-ids        Generate unique column 4 IDs for --in BED file entries
+                        (default: False)
+
+required arguments:
+  --in str              Genomic regions (hg38) BED file (6-column format)
+  --out str             Output results folder
+  --tr str              Transcript sequence IDs list file to define
+                        transcripts to map on
+  --gtf str             Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)
+  --gen str             Genomic sequences (hg38) .2bit file
+
+```
+
+The required arguments comprise the necessary input files (--in genomic RBP binding regions, --gtf genomic annotations, --gen .2bit genomic sequences, --tr transcript IDs list) and the output folder (--out) to store all files produced during the run.
+Optional arguments are provided for filtering the input .bed sites (--thr, --rev-filter, --min-len, --max-len), controlling the exon overlap amount (--min-exon-ol), the context sequence extension (--seq-ext), and the merging of nearby sites (--merge-ext, --merge-mode). In case the input .bed file does not have unique column 4 IDs, unique ones can be generated by --gen-uniq-ids. 
+
+#### G2T algorithm description
+
+In **G2T** mode, CLIPcontext first reads in the transcript IDs (--tr) and extracts the corresponding sequences using --gtf and --gen.
+After optionally filtering the input sites (--in) by score or length, the full-length sites are mapped to the given set of transcripts. This is mainly done to identify regions at exon borders. CLIPcontext performs mapping to the transcriptome only for genomic sites that show considerable overlap with an exonic region (by default >= 90%, --min-exon-ol 0.9). Identified border regions are merged by default (--merge-mode 1) if they overlap after applying --merge-ext (i.e., for each overlapping set of sites select the site with the highest score). Merging is done since for RBPs that bind to exonic regions, peaks called at adjacent exon ends often originate from the same binding event. In case all overlapping sites should be merged (not only sites at exon borders), use --merge-mode 2. If merging should be skipped altogether, use --merge-mode 3. Only sites that map to a single exonic region (uniquely mapped sites) are kept for subsequent sequence extraction. Non-unique matches are output only in BED format (see unique + non-unique matches on transcripts BED below).
+Merged and uniquely mapped sites are then mapped again to the transcriptome, this time only taking their center positions for mapping. After center-position mapping, extension by --seq-ext is performed for both transcript sites and genomic sites to get both their transcript and genomic context sequences. Transcript regions without full extension indicate their location near transcript ends.
+
+At the end of the run, an overview with short discriptions for each output file is printed out (--out test_out):
 
 ```
 ....
@@ -187,6 +221,125 @@ test_out/genomic_sites.cp.ext.fa
 ```
 Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
 
+### G2T
+
+The following command line arguments are available in **T2G** mode:
+
+```
+python clipcontext t2g -h
+usage: clipcontext t2g [-h] --in str --out str --gtf str --gen str
+                       [--thr float] [--rev-filter] [--min-len int]
+                       [--max-len int] [--seq-ext int] [--gen-uniq-ids]
+
+optional arguments:
+  -h, --help      show this help message and exit
+  --thr float     Site score threshold for filtering --in BED file (default:
+                  None)
+  --rev-filter    Reverse filtering (keep values <= threshold and prefer sites
+                  with smaller values) (default: False)
+  --min-len int   Minimum input site length for filtering --in BED file
+                  (default: False)
+  --max-len int   Maximum input site length for filtering --in BED file
+                  (default: False)
+  --seq-ext int   Up- and downstream extension of centered sites for context
+                  sequence extraction (default: 30)
+  --gen-uniq-ids  Generate unique column 4 IDs for --in BED file entries
+                  (default: False)
+
+required arguments:
+  --in str        Transcript regions BED file (6-column format) (transcript
+                  IDs need to be in --gtf)
+  --out str       Output results folder
+  --gtf str       Genomic annotations (hg38) GTF file (.gtf or .gtf.gz)
+  --gen str       Genomic sequences (hg38) .2bit file
+
+```
+
+A test run can be evoked by:
+
+```
+python clipcontext t2g --in lib/test_data/test_tr2gen.bed --gtf lib/test_data/test_tr2gen.gtf --out test_out_t2g --gen data/hg38.2bit
+
+```
+
+Transcript sites that span exon borders lead to split mappings, where the two (or more in case of long sites or short exons) parts map to different genomic locations. Here the following site IDs get assigned (original site ID: siteid): siteid_p1, siteid_p2. Again, an overview with short discriptions for each output file is printed out (--out test_out_t2g) at the end of the run:
+
+
+```
+....
+
+TRANSCRIPT FILES
+================
+Filtered transcript sites .bed:
+test_out_t2g/transcript_sites.bed
+Filtered transcript sites center positions .bed:
+test_out_t2g/transcript_sites.cp.bed
+Filtered transcript sites extended .bed:
+test_out_t2g/transcript_sites.cp.ext.bed
+Filtered transcript sites extended .fa:
+test_out_t2g/transcript_sites.cp.ext.fa
+Transcript exon regions .bed:
+test_out_t2g/exon_regions_transcript.bed
+
+GENOMIC FILES (FROM MAPPING FULL-LENGTH TRANSCRIPT SITES)
+=========================================================
+All genomic matches .bed:
+test_out_t2g/genomic_hits.all.bed
+Full-length genomic matches .bed:
+test_out_t2g/genomic_hits.unique.bed
+Split genomic matches .bed:
+test_out_t2g/genomic_hits.split.bed
+Transcript genomic exon regions .bed:
+test_out_t2g/exon_regions_genome.bed
+
+GENOMIC FILES (FROM MAPPING CENTERED TRANSCRIPT SITES)
+======================================================
+All genomic matches .bed:
+test_out_t2g/genomic_hits.all.bed
+Genomic matches center positions .bed:
+test_out_t2g/genomic_hits.cp.bed
+Genomic matches extended .bed:
+test_out_t2g/genomic_sites.cp.ext.bed
+Genomic matches extended .fa:
+test_out_t2g/genomic_sites.cp.ext.fa
+
+```
+
+### Additional modes (LST, INT, EXB, EIR)
+
+Executing the additional modes should be self-explanatory. Here are a few example runs for the individual modes:
+
+```
+python clipcontext lst --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
+
+```
+
+This command extracts a list of prominent transcript IDs from the given --gtf file. Setting --strict leads to a more strict selection, accepting only transcripts with TSL of 1-5. Setting -add-infos adds additional information to the output file, which then becomes a tabular file storing for each transcript ID: gene ID, gene name, gene biotype, transcript biotype, transcript length, number of transcript exons, transcript support level. See clipcontext lst -h for available arguments.
+
+
+```
+python clipcontext int --in data/g2t_test_in.bed --tr data/g2t_test_in.tr_list --gtf data/g2t_test_in.gtf --out sites_on_introns.bed
+
+```
+
+This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a transcript IDs list (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
+
+
+```
+python clipcontext exb --gtf data/g2t_test_in.gtf --tr data/g2t_test_in.tr_list --in data/g2t_test_in.bed --out sites_near_exon_borders.bed
+
+```
+
+This command returns input sites near exon borders (distance to borders can be controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
+
+
+```
+./clipcontext eir --tr data/g2t_test_in.tr_list --gtf data/g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
+
+```
+
+This commands extracts exon + intron regions in BED format for a given set of transcripts (--tr).
+
 
 ### Dataset formats
 
@@ -214,11 +367,11 @@ ENST00000635159
 ENST00000445118
 ENST00000446136
 ```
-The transcript IDs defined in this file are used to define the transcript set onto which the genomic regions (--in) are mapped to.
+The transcript IDs defined in this file are used to define the transcript set to be used in the different modes.
 
 #### Mapping statistics output file
 
-The mapping statistics output file stores the different hit counts and additional information for each transcript:
+The mapping statistics output file (output in **G2T** mode) stores the different hit counts and additional information for each transcript:
 ```
 head -5 test_out/hit_transcript_stats.out 
 tr_id	chr	gen_s	gen_e	pol	gene_id	gene_name	gene_biotype	tr_len	comp_hits	all_hits	uniq_comp_hits	uniq_all_hits
@@ -230,16 +383,4 @@ ENST00000379370	chr1	1020119	1056116	+	ENSG00000188157	AGRN	protein_coding	7326	
 
 Additional information includes the gene ID, gene name, gene biotype, transcript length, and the genomic region coordinates of the transcript. The different hit counts are: # complete (full-length matching) hits, # all hits (complete and incomplete), # unique (matching to one exon/transcript only) + complete hits, and # all unique hits.
 
-### Data preprocessing scripts
-
-Additional data preprocessing scripts are available in the scripts/ subfolder:
-
-#### bed_get_regions_near_exon_borders.py
-This script extracts binding regions near exon borders from a set of input BED regions. It can be used to create an input dataset for CLIPcontext, focussing only on regions near exon borders for further analysis.
-
-#### gtf_extract_exon_regions.py
-This script creates an exon regions BED file for a given list of transcript IDs. For each input transcript ID the exon regions get extracted. You will need this BED file e.g. as an input file to **bed_get_regions_near_exon_borders.py**.
-
-#### gtf_extract_most_prominent_transcripts.py
-This script extracts the most prominent transcript for each gene from a GTF file, producing a list of transcript IDs. Most prominent here is defined as the transcript that is part of the GENCODE basic dataset + having the highest transcript support level (TSL). If there are two or more transcripts of one gene having the same TSL, the longest transcript will be selected. Genes or transcripts that do not meet the filtering criteria will not be output. See the script help page for more details / extraction options. The most prominent transcript IDs output list can be used as input for CLIPcontext (--tr).
 
