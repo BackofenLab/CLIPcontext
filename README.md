@@ -314,7 +314,7 @@ python clipcontext lst --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_
 
 ```
 
-This command extracts a list of prominent transcript IDs from the given --gtf file. Setting --strict leads to a more strict selection, accepting only transcripts with TSL of 1-5. Setting -add-infos adds additional information to the output file, which then becomes a tabular file storing for each transcript ID: gene ID, gene name, gene biotype, transcript biotype, transcript length, number of transcript exons, transcript support level. See clipcontext lst -h for available arguments.
+This command extracts a list of prominent transcript IDs from the given --gtf file. Setting --strict leads to a more strict selection, accepting only transcripts with TSL of 1-5. Setting --add-infos adds additional information to the output file, which then becomes a tabular file storing for each transcript ID: gene ID, gene name, gene biotype, transcript ID, transcript biotype, transcript length, number of transcript exons, transcript support level. See clipcontext lst -h for available arguments.
 
 
 ```
@@ -322,7 +322,7 @@ python clipcontext int --in data/g2t_test_in.bed --tr data/g2t_test_in.tr_list -
 
 ```
 
-This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a transcript IDs list (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
+This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a list of transcript IDs (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
 
 
 ```
@@ -330,7 +330,7 @@ python clipcontext exb --gtf data/g2t_test_in.gtf --tr data/g2t_test_in.tr_list 
 
 ```
 
-This command returns input sites near exon borders (distance to borders can be controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
+This command returns input sites near exon borders (distance to borders is controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
 
 
 ```
@@ -371,7 +371,7 @@ The transcript IDs defined in this file are used to define the transcript set to
 
 #### Mapping statistics output file
 
-The mapping statistics output file (output in **G2T** mode) stores the different hit counts and additional information for each transcript:
+The mapping statistics output file (**G2T** mode only) stores the different hit counts and additional information for each transcript:
 ```
 head -5 test_out/hit_transcript_stats.out 
 tr_id	chr	gen_s	gen_e	pol	gene_id	gene_name	gene_biotype	tr_len	comp_hits	all_hits	uniq_comp_hits	uniq_all_hits
