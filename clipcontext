@@ -13,63 +13,6 @@ import os
 ./clipcontext -h
 
 
-
-
-Input example t2g:
-==================
-
-./clipcontext t2g
---in lib/test_data/test_tr2gen.bed
---gtf lib/test_data/test_tr2gen.gtf
---out test_out_t2g
---gen data/hg38.2bit
-
-Input example g2t:
-==================
-
-./clipcontext g2t
---in data/g2t_test_in.bed
---tr data/g2t_test_in.tr_list
---gtf data/g2t_test_in.gtf
---out test_out_g2t
---gen data/hg38.2bit
-
-Input example lst:
-==================
-
-./clipcontext lst
---gtf data/Homo_sapiens.GRCh38.98.gtf.gz
---out prominent_transcripts_gtf.out
---strict
---add-infos
-
-Input example exb:
-==================
-
-./clipcontext exb
---gtf data/g2t_test_in.gtf
---tr data/g2t_test_in.tr_list
---in data/g2t_test_in.bed
---out sites_near_exon_borders.bed
-
-Input example eir:
-==================
-
-./clipcontext eir
---tr data/g2t_test_in.tr_list
---gtf data/g2t_test_in.gtf
---exon-out extracted_exon_regions.bed
---intron-out extracted_intron_regions.bed
-
-Input example int:
-==================
-
-./clipcontext int
---in data/g2t_test_in.bed
---tr data/g2t_test_in.tr_list
---gtf data/g2t_test_in.gtf
---out intronic_sites.bed
-
 """
 
 
@@ -1419,9 +1362,3 @@ if __name__ == '__main__':
         main_int(args)
 
 ################################################################################
-
-"""
-    print("args in namespace:")
-    for arg in vars(args):
-        print(arg)
-"""
