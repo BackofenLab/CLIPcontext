@@ -75,9 +75,9 @@ wget https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
 wget ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/Homo_sapiens.GRCh38.98.gtf.gz
 cd ..
 ```
-Now we can run CLIPcontext in **G2T** mode on the datasets in the test/ subfolder:
+Now we can run CLIPcontext in **G2T** mode (for the relative paths to work we need to be inside the CLIPcontext/ source directory) on the datasets in the test/ subfolder:
 ```
-python clipcontext g2t --in test/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr test/GRCh38.p12.prominent_isoforms_chr1.out --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --gen test/hg38.2bit
+clipcontext g2t --in test/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr test/GRCh38.p12.prominent_isoforms_chr1.out --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --gen test/hg38.2bit
 ```
 
 CLIPcontext will output an overview of the files produced at the end of the run (all stored in set --out folder). For more details see the documentation section below.
@@ -88,7 +88,7 @@ CLIPcontext will output an overview of the files produced at the end of the run 
 An overview of the modes offered by CLIPcontext can be obtained by:
 
 ```
-python clipcontext -h
+clipcontext -h
 usage: clipcontext [-h] {g2t,t2g,lst,int,exb,eir} ...
 
 CLIPcontext tool suite for mapping RBP binding regions to transcriptome or
@@ -118,7 +118,7 @@ optional arguments:
 The following command line arguments are available in **G2T** mode:
 
 ```
-python clipcontext g2t -h
+clipcontext g2t -h
 usage: clipcontext g2t [-h] --in str --out str --tr str --gtf str --gen str
                        [--thr float] [--rev-filter] [--min-len int]
                        [--max-len int] [--min-exon-ol float]
@@ -227,7 +227,7 @@ Notice the naming conventions of the output files (cp : center-positioned site, 
 The following command line arguments are available in **T2G** mode:
 
 ```
-python clipcontext t2g -h
+clipcontext t2g -h
 usage: clipcontext t2g [-h] --in str --out str --gtf str --gen str
                        [--thr float] [--rev-filter] [--min-len int]
                        [--max-len int] [--seq-ext int] [--gen-uniq-ids]
@@ -259,7 +259,7 @@ required arguments:
 A test run can be evoked by:
 
 ```
-python clipcontext t2g --in test/test_tr2gen.bed --gtf test/test_tr2gen.gtf --out test_out_t2g --gen test/hg38.2bit
+clipcontext t2g --in test/test_tr2gen.bed --gtf test/test_tr2gen.gtf --out test_out_t2g --gen test/hg38.2bit
 
 ```
 
@@ -311,7 +311,7 @@ test_out_t2g/genomic_sites.cp.ext.fa
 Executing the additional modes should be self-explanatory. Here are a few example runs for the individual modes:
 
 ```
-python clipcontext lst --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
+clipcontext lst --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
 
 ```
 
@@ -319,7 +319,7 @@ This command extracts a list of prominent transcript IDs from the given --gtf fi
 
 
 ```
-python clipcontext int --in test/g2t_test_in.bed --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --out sites_on_introns.bed
+clipcontext int --in test/g2t_test_in.bed --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --out sites_on_introns.bed
 
 ```
 
@@ -327,7 +327,7 @@ This command gets the input sites overlapping with intron regions. Intron region
 
 
 ```
-python clipcontext exb --gtf test/g2t_test_in.gtf --tr test/g2t_test_in.tr_list --in test/g2t_test_in.bed --out sites_near_exon_borders.bed
+clipcontext exb --gtf test/g2t_test_in.gtf --tr test/g2t_test_in.tr_list --in test/g2t_test_in.bed --out sites_near_exon_borders.bed
 
 ```
 
@@ -335,7 +335,7 @@ This command returns input sites near exon borders (distance to borders is contr
 
 
 ```
-./clipcontext eir --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
+clipcontext eir --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
 
 ```
 
