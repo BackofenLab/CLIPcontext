@@ -46,7 +46,6 @@ To install CLIPcontext, simply clone the repository and use the Python script wi
 git clone https://github.com/BackofenLab/CLIPcontext.git
 cd CLIPcontext
 python setup.py install
-clipcontext -h
 ```
 
 ### Dependencies
