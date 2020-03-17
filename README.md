@@ -67,16 +67,16 @@ Depending on the set mode, the following datasets need to be obtained for runnin
 
 ### Test run
 
-A small BED file of genomic RBP binding regions as well as a list of transcript IDs is already provided in the data/ subfolder. First we download and store all the remaining necessary datasets in the same folder:
+A small BED file of genomic RBP binding regions as well as a list of transcript IDs is already provided in the test/ subfolder. First we download and store all the remaining necessary datasets in the same folder:
 ```
-cd data/
+cd test/
 wget https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
 wget ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/Homo_sapiens.GRCh38.98.gtf.gz
 cd ..
 ```
-Now we can run CLIPcontext in **G2T** mode on the datasets in the data/ subfolder:
+Now we can run CLIPcontext in **G2T** mode on the datasets in the test/ subfolder:
 ```
-python clipcontext g2t --in data/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr data/GRCh38.p12.prominent_isoforms_chr1.out --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --gen data/hg38.2bit
+python clipcontext g2t --in test/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr test/GRCh38.p12.prominent_isoforms_chr1.out --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --gen test/hg38.2bit
 ```
 
 CLIPcontext will output an overview of the files produced at the end of the run (all stored in set --out folder). For more details see the documentation section below.
@@ -258,7 +258,7 @@ required arguments:
 A test run can be evoked by:
 
 ```
-python clipcontext t2g --in data/test_tr2gen.bed --gtf data/test_tr2gen.gtf --out test_out_t2g --gen data/hg38.2bit
+python clipcontext t2g --in test/test_tr2gen.bed --gtf test/test_tr2gen.gtf --out test_out_t2g --gen test/hg38.2bit
 
 ```
 
@@ -310,7 +310,7 @@ test_out_t2g/genomic_sites.cp.ext.fa
 Executing the additional modes should be self-explanatory. Here are a few example runs for the individual modes:
 
 ```
-python clipcontext lst --gtf data/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
+python clipcontext lst --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
 
 ```
 
@@ -318,7 +318,7 @@ This command extracts a list of prominent transcript IDs from the given --gtf fi
 
 
 ```
-python clipcontext int --in data/g2t_test_in.bed --tr data/g2t_test_in.tr_list --gtf data/g2t_test_in.gtf --out sites_on_introns.bed
+python clipcontext int --in test/g2t_test_in.bed --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --out sites_on_introns.bed
 
 ```
 
@@ -326,7 +326,7 @@ This command gets the input sites overlapping with intron regions. Intron region
 
 
 ```
-python clipcontext exb --gtf data/g2t_test_in.gtf --tr data/g2t_test_in.tr_list --in data/g2t_test_in.bed --out sites_near_exon_borders.bed
+python clipcontext exb --gtf test/g2t_test_in.gtf --tr test/g2t_test_in.tr_list --in test/g2t_test_in.bed --out sites_near_exon_borders.bed
 
 ```
 
@@ -334,7 +334,7 @@ This command returns input sites near exon borders (distance to borders is contr
 
 
 ```
-./clipcontext eir --tr data/g2t_test_in.tr_list --gtf data/g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
+./clipcontext eir --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
 
 ```
 
