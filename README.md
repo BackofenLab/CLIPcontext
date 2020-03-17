@@ -52,7 +52,7 @@ python clipcontext -h
 Dependencies for CLIPcontext are as follows:
 
 - python3 (tested with version 3.7.3)
-- [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.26.0)
+- [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.29.0) executables in PATH
 - [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
 - [twoBitInfo](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitInfo) executable in PATH
 

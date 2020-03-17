@@ -7,6 +7,8 @@ import gzip
 import sys
 import os
 
+__version__ = "0.1"
+
 """
 
 # Check out available modes:
@@ -35,6 +37,10 @@ def setup_argument_parser():
     p = argparse.ArgumentParser(#add_help=False,
                                 prog="clipcontext",
                                 description=help_description)
+
+    # Tool version.
+    p.add_argument("-v", "--version", action="version",
+                   version="clipcontext v" + __version__)
 
     # Add subparsers.
     subparsers = p.add_subparsers(help='Program modes')

@@ -577,6 +577,13 @@ def bed_merge_file(in_bed, out_bed,
     the region IDs to later pick one region for each set of overlapping
     regions.
 
+    >>> in_bed = "test_data/test.sorted.bed"
+    >>> out_bed = "test_data/test.sorted.merged.tmp.bed"
+    >>> out_exp_bed = "test_data/test.sorted.merged.exp.bed"
+    >>> bed_merge_file(in_bed, out_bed)
+    >>> diff_two_files_identical(out_bed, out_exp_bed)
+    True
+
     """
     # Check for bedtools.
     assert is_tool("bedtools"), "bedtools not in PATH"
@@ -1334,7 +1341,7 @@ def bed_merge_file_select_top_ids(in_merged_bed, id2sc_dic,
     with open(in_merged_bed) as f:
         for line in f:
             cols = line.strip().split("\t")
-            ids = cols[4].split(";")
+            ids = cols[3].split(";")
             best_id = "-"
             best_sc = 0
             if rev_filter:
