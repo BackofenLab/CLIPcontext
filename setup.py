@@ -15,7 +15,7 @@ setup(
     url='https://github.com/BackofenLab/CLIPcontext',
     license='MIT',
     scripts=['bin/clipcontext'],
-    packages=['clipcontext'],
+    packages=['lib'],
     include_package_data=True,
 )
 
