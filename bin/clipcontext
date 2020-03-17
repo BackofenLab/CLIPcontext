@@ -1042,7 +1042,7 @@ def main_t2g(args):
     print("All genomic matches .bed:\n%s" %(gen_all_bed))
     print("Genomic matches center positions .bed:\n%s" %(gen_cp_bed))
     print("Genomic matches extended .bed:\n%s" %(gen_cp_ext_bed))
-    print("Genomic matches extended .fa:\n%s" %(gen_cp_ext_fa))
+    print("Genomic matches extended .fa:\n%s\n" %(gen_cp_ext_fa))
 
 
 ################################################################################
@@ -1090,7 +1090,7 @@ def main_eir(args):
     c_introns = cliplib.count_file_rows(args.intron_out)
     # Report.
     print("%i exon egions written to:\n%s" %(c_exons, args.exon_out))
-    print("%i intron regions written to:\n%s" %(c_introns, args.intron_out))
+    print("%i intron regions written to:\n%s\n" %(c_introns, args.intron_out))
 
 
 ################################################################################
@@ -1160,7 +1160,7 @@ def main_int(args):
 
     # Report.
     print("# of --in sites overlappin with introns:  %i" %(c_ovlp))
-    print("Overlapping sites written to:\n%s" %(args.out_bed))
+    print("Overlapping sites written to:\n%s\n" %(args.out_bed))
 
 
 ################################################################################
@@ -1295,7 +1295,7 @@ def main_exb(args):
     print("Number of --in regions:                                %i" %(c_in))
     print("Number of --in regions overlapping with exon regions:  %i" %(c_ol))
     print("Number of --in regions close to exon ends:             %i" %(c_close))
-    print("Regions close to exon ends written to:\n%s" %(args.out_bed))
+    print("Regions close to exon ends written to:\n%s\n" %(args.out_bed))
 
 
 ################################################################################
