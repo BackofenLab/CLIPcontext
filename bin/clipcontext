@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from lib import cliplib
+from clipcontext import cliplib
 import argparse
 import shutil
 import gzip
