@@ -73,11 +73,10 @@ A small BED file of genomic RBP binding regions as well as a list of transcript 
 cd test/
 wget https://hgdownload.cse.ucsc.edu/goldenpath/hg38/bigZips/hg38.2bit
 wget ftp://ftp.ensembl.org/pub/release-98/gtf/homo_sapiens/Homo_sapiens.GRCh38.98.gtf.gz
-cd ..
 ```
-Now we can run CLIPcontext in **G2T** mode (for the relative paths to work we need to be inside the CLIPcontext/ source directory) on the datasets in the test/ subfolder:
+Now we can run CLIPcontext in **G2T** mode on the datasets in the test/ subfolder:
 ```
-clipcontext g2t --in test/SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr test/GRCh38.p12.prominent_isoforms_chr1.out --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --gen test/hg38.2bit
+clipcontext g2t --in SERBP1_K562_rep1_sites_chr1_hg38.bed --out test_out --tr GRCh38.p12.prominent_isoforms_chr1.out --gtf Homo_sapiens.GRCh38.98.gtf.gz --gen hg38.2bit
 ```
 
 CLIPcontext will output an overview of the files produced at the end of the run (all stored in set --out folder). For more details see the documentation section below.
@@ -256,10 +255,10 @@ required arguments:
 
 ```
 
-A test run can be evoked by:
+A test run (still inside the test/ subfolder) can be evoked by:
 
 ```
-clipcontext t2g --in test/test_tr2gen.bed --gtf test/test_tr2gen.gtf --out test_out_t2g --gen test/hg38.2bit
+clipcontext t2g --in test_tr2gen.bed --gtf test_tr2gen.gtf --out test_out_t2g --gen hg38.2bit
 
 ```
 
@@ -308,10 +307,10 @@ test_out_t2g/genomic_sites.cp.ext.fa
 
 ### Additional modes (LST, INT, EXB, EIR)
 
-Executing the additional modes should be self-explanatory. Here are a few example runs for the individual modes:
+Executing the additional modes should be self-explanatory. Here are a few example runs (again inside the test/ subfolder) for the individual modes:
 
 ```
-clipcontext lst --gtf test/Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
+clipcontext lst --gtf Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
 
 ```
 
@@ -319,7 +318,7 @@ This command extracts a list of prominent transcript IDs from the given --gtf fi
 
 
 ```
-clipcontext int --in test/g2t_test_in.bed --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --out sites_on_introns.bed
+clipcontext int --in g2t_test_in.bed --tr g2t_test_in.tr_list --gtf g2t_test_in.gtf --out sites_on_introns.bed
 
 ```
 
@@ -327,7 +326,7 @@ This command gets the input sites overlapping with intron regions. Intron region
 
 
 ```
-clipcontext exb --gtf test/g2t_test_in.gtf --tr test/g2t_test_in.tr_list --in test/g2t_test_in.bed --out sites_near_exon_borders.bed
+clipcontext exb --gtf g2t_test_in.gtf --tr g2t_test_in.tr_list --in g2t_test_in.bed --out sites_near_exon_borders.bed
 
 ```
 
@@ -335,7 +334,7 @@ This command returns input sites near exon borders (distance to borders is contr
 
 
 ```
-clipcontext eir --tr test/g2t_test_in.tr_list --gtf test/g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
+clipcontext eir --tr g2t_test_in.tr_list --gtf g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
 
 ```
 
