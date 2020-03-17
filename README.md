@@ -43,7 +43,7 @@ In **EIR** mode, CLIPcontext creates exon + intron regions BED files for a given
 To install CLIPcontext, simply clone the repository and use the Python script within the folder:
 
 ```
-git clone https://github.com/michauhl/CLIPcontext.git
+git clone https://github.com/BackofenLab/CLIPcontext.git
 cd CLIPcontext
 python clipcontext -h
 ```
