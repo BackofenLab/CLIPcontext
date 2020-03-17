@@ -16,6 +16,6 @@ setup(
     license='MIT',
     scripts=['bin/clipcontext'],
     packages=['lib'],
-    include_package_data=True,
+    zip_safe=False,
 )
 
