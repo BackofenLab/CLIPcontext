@@ -258,7 +258,7 @@ required arguments:
 A test run can be evoked by:
 
 ```
-python clipcontext t2g --in lib/test_data/test_tr2gen.bed --gtf lib/test_data/test_tr2gen.gtf --out test_out_t2g --gen data/hg38.2bit
+python clipcontext t2g --in data/test_tr2gen.bed --gtf data/test_tr2gen.gtf --out test_out_t2g --gen data/hg38.2bit
 
 ```
 
