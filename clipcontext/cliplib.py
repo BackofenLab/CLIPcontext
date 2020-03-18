@@ -28,6 +28,14 @@ python3 -m doctest cliplib.py
 
 
 
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+External command line tools used
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+cat, cut, diff, echo, grep, mv, sort, bedtools, twoBitInfo, twoBitToFa
+
+
 """
 
 ################################################################################

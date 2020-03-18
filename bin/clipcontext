@@ -1318,7 +1318,12 @@ if __name__ == '__main__':
     print("                                                     ")
 
     # Check for Linux.
-    assert "linux" in sys.platform, "ERROR: please use Linux"
+    linux_fanboy = False
+    if linux_fanboy:
+        assert "linux" in sys.platform, "ERROR: please use Linux"
+    else:
+        if not "linux" in sys.platform:
+            print("WARNING: this tool was tested under Linux. Please use Linux or use it at your own risk .. ")
     # Check tool availability.
     assert cliplib.is_tool("bedtools"), "ERROR: bedtools not in PATH"
     assert cliplib.is_tool("twoBitToFa"), "ERROR: twoBitToFa not in PATH"
