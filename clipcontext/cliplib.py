@@ -1520,7 +1520,7 @@ def read_fasta_into_dic(fasta_file,
             if re.search(".+\..+", seq_id):
                 m = re.search("(.+?)\..+", seq_id)
                 seq_id = m.group(1)
-            assert seq_id not in seqs_dic, "non-unique FASTA header \"%s\" in \"%s\"" % (seq_id, fasta_file)
+            assert seq_id not in seqs_dic, "ERROR: non-unique FASTA header \"%s\" in \"%s\"" % (seq_id, fasta_file)
             if ids_dic:
                 if seq_id in ids_dic:
                     seqs_dic[seq_id] = ""
@@ -1546,6 +1546,7 @@ def read_fasta_into_dic(fasta_file,
                 else:
                     seqs_dic[seq_id] += m.group(1).replace("T","U").replace("t","u")
     f.close()
+    assert seqs_dic, "ERROR: no sequences read in (input FASTA file \"%s\" empty or mal-formatted?)" %(fasta_file)
     return seqs_dic
 
 
@@ -2397,7 +2398,7 @@ def bed_convert_transcript_to_genomic_sites(in_bed, in_gtf, out_bed,
                                             out_folder=False):
     """
     Dependencies:
-    bedtools (tested with 2.26.0)
+    bedtools (tested with 2.29.0)
     gzip
 
     Convert in_bed .bed file with transcript sites into genomic coordinates
@@ -2900,6 +2901,10 @@ def gtf_get_transcript_lengths(in_gtf,
     """
     Get transcript lengths (= length of their exons, not unspliced length!)
     from GTF file.
+
+    tr2exc_dic:
+    Optionally provide a transcript ID to exon count dictionary for counting
+    transcript exons.
 
     >>> in_gtf = "test_data/map_test_in.gtf"
     >>> gtf_get_transcript_lengths(in_gtf)
