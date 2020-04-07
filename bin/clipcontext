@@ -685,7 +685,7 @@ def main_g2t(args):
     # Output sequences to FASTA file.
     cliplib.fasta_output_dic(id2seq_dic, tr_uniq_cp_ext_fa,
                              split=True,
-                             split_size=50)
+                             split_size=60)
 
     # Old sanity check, skip.
     sanity_check = False
@@ -780,7 +780,7 @@ def main_g2t(args):
         # Output sequences to FASTA file.
         cliplib.fasta_output_dic(trid2seq_dic, merged_transcript_hits_cp_ext_fa,
                                  split=True,
-                                 split_size=50)
+                                 split_size=60)
         # Clean up.
         if os.path.exists(merged_transcript_hits_tmp_bed):
             os.remove(merged_transcript_hits_tmp_bed)
@@ -1018,7 +1018,7 @@ def main_t2g(args):
     # Output sequences to FASTA file.
     cliplib.fasta_output_dic(trid2seq_dic, tr_cp_ext_fa,
                              split=True,
-                             split_size=50)
+                             split_size=60)
 
     # Take out the trash.
     clean_up = True
