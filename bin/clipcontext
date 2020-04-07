@@ -460,7 +460,7 @@ def main_g2t(args):
     # Remove transcript IDs for which sequence extraction failed.
     for tr_id in tr_ids_dic:
         if tr_id not in tr_seqs_dic:
-            print("WARNING: sequence extraction failed for transcript ID \"%s\"" %s(tr_id))
+            print("WARNING: sequence extraction failed for transcript ID \"%s\"" %(tr_id))
             del tr_ids_dic[tr_id]
     assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
     print("# transcript IDs after sequence extraction:  %i" %(len(tr_ids_dic)))
@@ -907,7 +907,7 @@ def main_t2g(args):
     # Remove transcript IDs for which sequence extraction failed.
     for tr_id in tr_ids_dic:
         if tr_id not in tr_seqs_dic:
-            print("WARNING: sequence extraction failed for transcript ID \"%s\"" %s(tr_id))
+            print("WARNING: sequence extraction failed for transcript ID \"%s\"" %(tr_id))
             del tr_ids_dic[tr_id]
     assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
     print("# transcript IDs after sequence extraction:    %i" %(len(tr_ids_dic)))
