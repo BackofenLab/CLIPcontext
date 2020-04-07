@@ -1493,9 +1493,6 @@ def read_fasta_into_dic(fasta_file,
     >>> test_fasta = "test_data/test.fa"
     >>> read_fasta_into_dic(test_fasta)
     {'seq1': 'acguACGUacgu', 'seq2': 'ugcaUGCAugcaACGUacgu'}
-    >>> test_fasta = "test_data/test2.fa"
-    >>> read_fasta_into_dic(test_fasta)
-    {}
     >>> test_fasta = "test_data/test.ensembl.fa"
     >>> read_fasta_into_dic(test_fasta, read_dna=True)
     {'ENST00000415118': 'GAAATAGT', 'ENST00000448914': 'ACTGGGGGATACGAAAA'}
