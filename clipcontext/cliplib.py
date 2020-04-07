@@ -503,8 +503,7 @@ def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit,
     sequences in out_fa.
 
     convert_to_rna:
-    If true, read in extracted sequences and convert to RNA. Output
-    with row length = 50.
+    If true, read in extracted sequences and convert to RNA.
 
     """
     # Check for twoBitToFa.
@@ -521,8 +520,7 @@ def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit,
         seqs_dic = read_fasta_into_dic(out_fa)
         # Output RNA sequences.
         fasta_output_dic(seqs_dic, out_fa,
-                         split=True,
-                         split_size=50)
+                         split=True)
 
 
 ################################################################################
