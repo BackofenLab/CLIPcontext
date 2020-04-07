@@ -495,16 +495,20 @@ def extract_transcript_sequences(bed_dic, seq_dic,
 
 ################################################################################
 
-def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit):
+def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit,
+                                    convert_to_rna=False):
     """
     Extract sequences from genome (provide genome .2bit file).
     twoBitToFa executable needs to be in PATH. Store extracted
     sequences in out_fa.
 
+    convert_to_rna:
+    If true, read in extracted sequences and convert to RNA. Output
+    with row length = 50.
+
     """
     # Check for twoBitToFa.
     assert is_tool("twoBitToFa"), "twoBitToFa not in PATH"
-
     # Run twoBitToFa and check.
     check_cmd = "twoBitToFa -noMask -bed=" + in_bed + " " + in_2bit + " " + out_fa
     output = subprocess.getoutput(check_cmd)
@@ -512,6 +516,13 @@ def bed_extract_sequences_from_2bit(in_bed, out_fa, in_2bit):
     if output:
         error = True
     assert error == False, "twoBitToFa is complaining:\n%s\n%s" %(check_cmd, output)
+    if convert_to_rna:
+        # Read in tmp_fa into dictionary (this also converts sequences to RNA).
+        seqs_dic = read_fasta_into_dic(out_fa)
+        # Output RNA sequences.
+        fasta_output_dic(seqs_dic, out_fa,
+                         split=True,
+                         split_size=50)
 
 
 ################################################################################
@@ -2864,8 +2875,11 @@ def fasta_output_dic(fasta_dic, fasta_out,
     """
     Output FASTA sequences dictionary (sequence_id -> sequence) to fasta_out.
 
-    split        Split FASTA sequence for output to file
-    split_size   Split size
+    split:
+    Split FASTA sequence for output to file
+
+    split_size:
+    Split size (= output sequence row length)
 
     >>> fasta_dic = {'seq1': 'ACGTACGTACGTAC', 'seq2': 'ACGT'}
     >>> split_size = 4

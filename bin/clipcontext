@@ -736,17 +736,18 @@ def main_g2t(args):
                                      center_sites=True)
 
     # Extend genomic center position sites.
-    cliplib.bed_process_bed_file(filt_in_bed, gen_cp_ext_bed,
+    cliplib.bed_process_bed_file(gen_cp_bed, gen_cp_ext_bed,
                                  ext_lr=args.us_ds_ext,
                                  center_sites=True)
     # Extend genomic center position sites with zero scores for twoBitToFa.
     tmp_bed7 = args.out_folder + "/" + "genomic_sites.cp.ext.no_sc.tmp.bed"
-    cliplib.bed_process_bed_file(filt_in_bed, tmp_bed7,
+    cliplib.bed_process_bed_file(gen_cp_bed, tmp_bed7,
                                  ext_lr=args.us_ds_ext,
                                  zero_scores=True,
                                  center_sites=True)
     # Get extended genomic regions.
-    cliplib.bed_extract_sequences_from_2bit(tmp_bed7, gen_cp_ext_fa, args.in_2bit)
+    cliplib.bed_extract_sequences_from_2bit(tmp_bed7, gen_cp_ext_fa, args.in_2bit,
+                                            convert_to_rna=True)
 
     """
     If args.add_out:
