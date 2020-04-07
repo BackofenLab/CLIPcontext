@@ -458,9 +458,13 @@ def main_g2t(args):
     chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, chr_lengths_file)
 
     # Remove transcript IDs for which sequence extraction failed.
+    remove_ids_dic = {}
     for tr_id in tr_ids_dic:
         if tr_id not in tr_seqs_dic:
             print("WARNING: sequence extraction failed for transcript ID \"%s\"" %(tr_id))
+            remove_ids_dic[tr_id] = 1
+    # Remove IDs for which sequence extraction failed.
+    for tr_id in remove_ids_dic:
             del tr_ids_dic[tr_id]
     assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
     print("# transcript IDs after sequence extraction:  %i" %(len(tr_ids_dic)))
@@ -905,10 +909,15 @@ def main_t2g(args):
     chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, chr_lengths_file)
 
     # Remove transcript IDs for which sequence extraction failed.
+    remove_ids_dic = {}
     for tr_id in tr_ids_dic:
         if tr_id not in tr_seqs_dic:
             print("WARNING: sequence extraction failed for transcript ID \"%s\"" %(tr_id))
+            remove_ids_dic[tr_id] = 1
+    # Remove IDs for which sequence extraction failed.
+    for tr_id in remove_ids_dic:
             del tr_ids_dic[tr_id]
+
     assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
     print("# transcript IDs after sequence extraction:    %i" %(len(tr_ids_dic)))
 
