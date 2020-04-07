@@ -3023,6 +3023,15 @@ def gtf_extract_most_prominent_transcripts(in_gtf, out_file,
         if not feature == "transcript":
             continue
 
+        # Restrict to standard chromosomes.
+        if re.search("^chr", chr_id):
+            if not re.search("^chr[\dMXY]", chr_id):
+                continue
+        else:
+            # Convert to "chr" IDs.
+            if not re.search("^[\dMXY]", chr_id):
+                continue
+
         # Extract gene ID.
         m = re.search('gene_id "(.+?)"', infos)
         assert m, "gene_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
