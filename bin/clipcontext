@@ -445,7 +445,7 @@ def main_g2t(args):
     # Read in transcript ID list.
     tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
     tr_ids_c = len(tr_ids_dic)
-    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
     print("# transcript IDs read in:                    %i" %(tr_ids_c))
 
     # Extract transcript sequences from .2bit.
@@ -466,7 +466,7 @@ def main_g2t(args):
     # Remove IDs for which sequence extraction failed.
     for tr_id in remove_ids_dic:
             del tr_ids_dic[tr_id]
-    assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
+    assert tr_ids_dic, "sequence extraction failed for all transcript IDs"
     print("# transcript IDs after sequence extraction:  %i" %(len(tr_ids_dic)))
 
     # Count input sites.
@@ -483,7 +483,7 @@ def main_g2t(args):
 
     # Number of remaining sites.
     c_filt_sites = cliplib.count_file_rows(filt_in_bed)
-    assert c_filt_sites, "ERROR: no remaining BED regions after --thr filtering"
+    assert c_filt_sites, "no remaining BED regions after --thr filtering"
     print("# --in BED sites after --thr filtering:      %i" %(c_filt_sites))
 
     """
@@ -601,7 +601,7 @@ def main_g2t(args):
         # Just take uniquely mapped site IDs (all unique).
         ids2keep_dic = uniq_tr_hit_dic
     else:
-        assert 0, "ERROR: invalid --merge-mode set"
+        assert 0, "invalid --merge-mode set"
 
     # Number of transcript sites after merging.
     c_ids2keep = len(ids2keep_dic)
@@ -919,7 +919,7 @@ def main_t2g(args):
     for tr_id in remove_ids_dic:
             del tr_ids_dic[tr_id]
 
-    assert tr_ids_dic, "ERROR: sequence extraction failed for all transcript IDs"
+    assert tr_ids_dic, "sequence extraction failed for all transcript IDs"
     print("# transcript IDs after sequence extraction:    %i" %(len(tr_ids_dic)))
 
     # Filter --in BED allowing only transcripts with sequences.
@@ -928,7 +928,7 @@ def main_t2g(args):
                                  seqids2keep_dic=tr_ids_dic)
     # Count sites.
     c_sites_with_seq = cliplib.count_file_rows(filt_in_bed)
-    assert c_sites_with_seq, "ERROR: no transcript sites left after sequence extraction"
+    assert c_sites_with_seq, "no transcript sites left after sequence extraction"
     print("# transcript sites after sequence extraction:  %i" %(c_sites_with_seq))
 
     # Map full length sites to genome (get split and full sites).
@@ -938,7 +938,7 @@ def main_t2g(args):
                                                     args.out_folder,
                                                     site2hitc_dic=site2hitc_dic,
                                                     out_folder=True)
-    assert site2hitc_dic, "ERROR: site ID to hit count dictionary empty"
+    assert site2hitc_dic, "site ID to hit count dictionary empty"
 
     # Rename output files.
     out_all_hits_bed = args.out_folder + "/" + "all_hits.bed"
@@ -978,7 +978,7 @@ def main_t2g(args):
     # Check for same numbers.
     c_tr_cp = cliplib.count_file_rows(tr_cp_bed)
     c_gen_cp = cliplib.count_file_rows(gen_cp_bed)
-    assert c_tr_cp == c_gen_cp, "ERROR: center position transcript sites != center position genomic sites (%i != %i)" %(c_tr_cp, c_gen_cp)
+    assert c_tr_cp == c_gen_cp, "center position transcript sites != center position genomic sites (%i != %i)" %(c_tr_cp, c_gen_cp)
 
     print("# transcript site center positions mapped:     %i" %(c_gen_cp))
 
@@ -1086,7 +1086,7 @@ def main_eir(args):
     # Read in transcript ID list.
     tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
     tr_ids_c = len(tr_ids_dic)
-    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
     print("# transcript IDs read in:  %i" %(tr_ids_c))
 
     # Extract exon + intron regions for given transcripts.
@@ -1116,12 +1116,12 @@ def main_int(args):
     # Read in transcript ID list.
     tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
     tr_ids_c = len(tr_ids_dic)
-    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
     print("# transcript IDs read in:                 %i" %(tr_ids_c))
 
     # Count input files.
     c_in = cliplib.count_file_rows(args.in_bed)
-    assert c_in, "ERROR: --in BED file \"%s\" is empty" %(args.in_bed)
+    assert c_in, "--in BED file \"%s\" is empty" %(args.in_bed)
     print("# of --in input sites:                    %i" %(c_in))
 
     # Generate .tmp files.
@@ -1142,7 +1142,7 @@ def main_int(args):
                                  rev_filter=args.rev_filter)
     # Count filtered sites.
     c_in_filt = cliplib.count_file_rows(tmp_bed1)
-    assert c_in_filt, "ERROR: no --in sites remaining after filtering"
+    assert c_in_filt, "no --in sites remaining after filtering"
     print("# of --in sites after filtering:          %i" %(c_in_filt))
 
     # Extract exon+intron regions for given transcripts.
@@ -1155,7 +1155,7 @@ def main_int(args):
     cliplib.intersect_bed_files(tmp_bed1, tmp_bed3, params, args.out_bed)
     # Count overlapping sites.
     c_ovlp = cliplib.count_file_rows(args.out_bed)
-    assert c_ovlp, "ERROR: no --in sites overlapping with given intron regions"
+    assert c_ovlp, "no --in sites overlapping with given intron regions"
 
     # Litter the street.
     clean_up = True
@@ -1187,7 +1187,7 @@ def main_exb(args):
     # Read in transcript ID list.
     tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
     tr_ids_c = len(tr_ids_dic)
-    assert tr_ids_c, "ERROR: no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+    assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
     print("# transcript IDs read in:  %i" %(tr_ids_c))
 
     # Generate .tmp files.
@@ -1207,7 +1207,7 @@ def main_exb(args):
 
     # Check .bed for content.
     c_in = cliplib.count_file_rows(args.in_bed)
-    assert c_in, "ERROR: input .bed file \"%s\" is empty" %(args.in_bed)
+    assert c_in, "input .bed file \"%s\" is empty" %(args.in_bed)
 
     # First get regions inside exons (overlapping >= 90 % with them).
     params = "-s -u -wa -f 0.90"
@@ -1246,7 +1246,7 @@ def main_exb(args):
             # Check whether score is whole number.
             if not site_sc % 1:
                 site_sc = int(site_sc)
-            # Conver to string.
+            # Convert to string.
             new_sc = str(site_sc)
             # Extend site.
             new_s = site_s - args.max_dist - 1
@@ -1330,33 +1330,33 @@ if __name__ == '__main__':
     # Check for Linux.
     linux_fanboy = False
     if linux_fanboy:
-        assert "linux" in sys.platform, "ERROR: please use Linux"
+        assert "linux" in sys.platform, "please use Linux"
     else:
         if not "linux" in sys.platform:
             print("WARNING: this tool was tested under Linux. Please use Linux or use it at your own risk .. ")
     # Check tool availability.
-    assert cliplib.is_tool("bedtools"), "ERROR: bedtools not in PATH"
-    assert cliplib.is_tool("twoBitToFa"), "ERROR: twoBitToFa not in PATH"
+    assert cliplib.is_tool("bedtools"), "bedtools not in PATH"
+    assert cliplib.is_tool("twoBitToFa"), "twoBitToFa not in PATH"
     assert cliplib.is_tool("twoBitInfo"), "twoBitInfo not in PATH"
     # Check file inputs.
-    assert os.path.exists(args.in_gtf), "ERROR: --gtf GTF file \"%s\" not found" %(args.in_gtf)
+    assert os.path.exists(args.in_gtf), "--gtf GTF file \"%s\" not found" %(args.in_gtf)
     if args.which != 'lst' and args.which != 't2g':
-        assert os.path.exists(args.in_tr_list), "ERROR: input transcript ID list file \"%s\" not found" %(args.in_tr_list)
+        assert os.path.exists(args.in_tr_list), "input transcript ID list file \"%s\" not found" %(args.in_tr_list)
     if args.which != 'eir' and args.which != 'lst':
-        assert os.path.exists(args.in_bed), "ERROR: --in BED file \"%s\" not found" %(args.in_bed)
+        assert os.path.exists(args.in_bed), "--in BED file \"%s\" not found" %(args.in_bed)
         # Check .bed for content.
         c_in_sites = cliplib.count_file_rows(args.in_bed)
-        assert c_in_sites, "ERROR: --in BED file \"%s\" is empty" %(args.in_bed)
+        assert c_in_sites, "--in BED file \"%s\" is empty" %(args.in_bed)
         # Check .bed for 6-column format.
-        assert cliplib.bed_check_six_col_format(args.in_bed), "ERROR: --in BED file \"%s\" appears to be not in 6-column .bed format" %(args.in_bed)
+        assert cliplib.bed_check_six_col_format(args.in_bed), "--in BED file \"%s\" appears to be not in 6-column .bed format" %(args.in_bed)
         # Check for unique column 4 IDs.
         if args.which == 'g2t' or args.which == 't2g':
             if not args.gen_uniq_ids:
-                assert cliplib.bed_check_unique_ids(args.in_bed), "ERROR: --in BED file \"%s\" column 4 IDs not unique (change or use --gen-uniq-ids option)" %(args.in_bed)
+                assert cliplib.bed_check_unique_ids(args.in_bed), "--in BED file \"%s\" column 4 IDs not unique (change or use --gen-uniq-ids option)" %(args.in_bed)
         else:
-            assert cliplib.bed_check_unique_ids(args.in_bed), "ERROR: --in BED file \"%s\" column 4 IDs not unique (change or use --gen-uniq-ids option)" %(args.in_bed)
+            assert cliplib.bed_check_unique_ids(args.in_bed), "--in BED file \"%s\" column 4 IDs not unique (change or use --gen-uniq-ids option)" %(args.in_bed)
     if args.which == 'g2t' or args.which == 't2g':
-        assert os.path.exists(args.in_2bit), "ERROR: --gen .2bit file \"%s\" not found" %(args.in_2bit)
+        assert os.path.exists(args.in_2bit), "--gen .2bit file \"%s\" not found" %(args.in_2bit)
     # Generate results output folder.
     if args.which == 'g2t' or args.which == 't2g':
         if not os.path.exists(args.out_folder):
