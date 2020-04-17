@@ -63,14 +63,14 @@ def dir_get_files(file_dir,
     from os import listdir
     from os.path import isfile, join
     dir_files = [f for f in listdir(file_dir) if isfile(join(file_dir, f))]
-    assert dir_files, "ERROR: given directory \"%s\" contains no files" %(file_dir)
+    assert dir_files, "given directory \"%s\" contains no files" %(file_dir)
     # If filter for file ending true.
     if file_ending:
         new_files = []
         for df in dir_files:
             if re.search(".+\.%s" %(file_ending), df):
                 new_files.append(df)
-        assert new_files, "ERROR: no files left after filtering by file ending \"%s\"" %(file_ending)
+        assert new_files, "no files left after filtering by file ending \"%s\"" %(file_ending)
         return new_files
     else:
         return dir_files
@@ -294,8 +294,8 @@ def bed_process_bed_file(in_bed_file, out_bed_file,
             site_pol = cols[5]
             site_l = site_e - site_s
             # Sanity checking .bed file.
-            assert site_s < site_e, "ERROR: invalid region coordinates in .bed file \"%s\" (start >= end: %i >= %i)" % (in_bed_file, site_s, site_e)
-            assert site_s >= 0 and site_e >= 1, "ERROR: invalid region coordinates in .bed file \"%s\" (start < 0 or end < 1)" % (in_bed_file)
+            assert site_s < site_e, "invalid region coordinates in .bed file \"%s\" (start >= end: %i >= %i)" % (in_bed_file, site_s, site_e)
+            assert site_s >= 0 and site_e >= 1, "invalid region coordinates in .bed file \"%s\" (start < 0 or end < 1)" % (in_bed_file)
             # Filter by IDs to keep dictionary.
             if siteids2keep_dic:
                 if not site_id in siteids2keep_dic:
@@ -1526,7 +1526,7 @@ def read_fasta_into_dic(fasta_file,
             if re.search(".+\..+", seq_id):
                 m = re.search("(.+?)\..+", seq_id)
                 seq_id = m.group(1)
-            assert seq_id not in seqs_dic, "ERROR: non-unique FASTA header \"%s\" in \"%s\"" % (seq_id, fasta_file)
+            assert seq_id not in seqs_dic, "non-unique FASTA header \"%s\" in \"%s\"" % (seq_id, fasta_file)
             if ids_dic:
                 if seq_id in ids_dic:
                     seqs_dic[seq_id] = ""
@@ -1552,7 +1552,7 @@ def read_fasta_into_dic(fasta_file,
                 else:
                     seqs_dic[seq_id] += m.group(1).replace("T","U").replace("t","u")
     f.close()
-    assert seqs_dic, "ERROR: no sequences read in (input FASTA file \"%s\" empty or mal-formatted?)" %(fasta_file)
+    assert seqs_dic, "no sequences read in (input FASTA file \"%s\" empty or mal-formatted?)" %(fasta_file)
     return seqs_dic
 
 
@@ -1695,7 +1695,7 @@ def bed_count_region_overlaps(site_bed, region_bed, overlap_out,
             else:
                 reg_site_ids_dic[reg_id] = [site_id]
     f.close()
-    assert c_all, "ERROR: no overlapping sites when overlapping \"%s\" with \"%s\"" %(site_bed, region_bed)
+    assert c_all, "no overlapping sites when overlapping \"%s\" with \"%s\"" %(site_bed, region_bed)
     return reg_olc_dic, reg_site_ids_dic
 
 
@@ -1878,7 +1878,7 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
         for tr_id in tr2exon_nr_dic:
             exon_nr = tr2exon_nr_dic[tr_id]
             intron_nr = tr2intron_nr_dic[tr_id]
-            assert (exon_nr-1) == intron_nr, "ERROR: intron number != exon number - 1 for \"%s\" (%i != %i - 1)" %(tr_id, intron_nr, exon_nr)
+            assert (exon_nr-1) == intron_nr, "intron number != exon number - 1 for \"%s\" (%i != %i - 1)" %(tr_id, intron_nr, exon_nr)
 
 
 ################################################################################
@@ -2092,7 +2092,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
     f.close()
 
     # Check for read-in features.
-    assert c_gtf_ex_feat, "ERROR: no exon features read in from \"%s\"" %(in_gtf)
+    assert c_gtf_ex_feat, "no exon features read in from \"%s\"" %(in_gtf)
 
     # Output transcript exon regions.
     OUTBED = open(transcript_exon_bed, "w")
@@ -2359,7 +2359,7 @@ def bed_merge_identical_regions(in_bed, out_bed,
     True
 
     """
-    assert os.path.isfile(in_bed), "ERROR: Cannot open in_bed \"%s\"" % (in_bed)
+    assert os.path.isfile(in_bed), "cannot open in_bed \"%s\"" % (in_bed)
     # Read in IDs.
     reg2ids_dic = {}
     reg2c_dic = {}
@@ -2380,7 +2380,7 @@ def bed_merge_identical_regions(in_bed, out_bed,
                 reg2ids_dic[reg_id] = site_id
                 reg2c_dic[reg_id] = 1
     f.closed
-    assert reg2ids_dic, "ERROR: reg2ids_dic empty. in_bed empty?"
+    assert reg2ids_dic, "reg2ids_dic empty. in_bed empty?"
     # Write merged regions to out_bed.
     OUTBED = open(out_bed,"w")
     c_out = 0
@@ -2394,7 +2394,7 @@ def bed_merge_identical_regions(in_bed, out_bed,
         c_out += 1
         OUTBED.write("%s\t%s\t%s\t%s\t0\t%s\n" % (cols[0],cols[1],cols[2],reg_ids,cols[3]))
     OUTBED.close()
-    assert c_out, "ERROR: nothing was output into out_bed"
+    assert c_out, "nothing was output into out_bed"
 
 
 ################################################################################
@@ -2495,7 +2495,7 @@ def bed_convert_transcript_to_genomic_sites(in_bed, in_gtf, out_bed,
                 tr_id = m.group(1)
                 exid2trid_dic[site_id] = tr_id
             else:
-                assert False, "ERROR: site ID \"%s\" missing added _e exon number" %(site_id)
+                assert False, "site ID \"%s\" missing added _e exon number" %(site_id)
     f.close()
 
     # Output exon regions with transcript coordinates.
@@ -2671,9 +2671,9 @@ def bed_get_transcript_exon_numbers(in_bed):
                 else:
                     tr_exc_dic[tr_id] += 1
             else:
-                assert False, "ERROR: site ID \"%s\" missing added _e exon number" %(site_id)
+                assert False, "site ID \"%s\" missing added _e exon number" %(site_id)
     f.close()
-    assert tr_exc_dic, "ERROR: nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
+    assert tr_exc_dic, "nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
     return tr_exc_dic
 
 
@@ -2734,11 +2734,11 @@ def get_transcript_sequences_from_gtf(in_gtf, in_2bit,
                     del tr_seqs_dic[tr_id]
                 break
     # Checks.
-    assert tr_seqs_dic, "ERROR: tr_seqs_dic empty (no FASTA sequences extracted?)"
+    assert tr_seqs_dic, "tr_seqs_dic empty (no FASTA sequences extracted?)"
     for tr_id in tr_seqs_dic:
         tr_len = len(tr_seqs_dic[tr_id])
         exp_len = tr_len_dic[tr_id]
-        assert tr_len == exp_len, "ERROR: BED transcript length != FASTA transcript length for \"%s\"" %(tr_id)
+        assert tr_len == exp_len, "BED transcript length != FASTA transcript length for \"%s\"" %(tr_id)
 
     # Delete tmp files.
     if os.path.exists(tmp_bed):
@@ -2782,9 +2782,9 @@ def bed_get_transcript_lengths_from_exon_regions(in_bed):
                 else:
                     tr_len_dic[tr_id] += site_len
             else:
-                assert False, "ERROR: site ID \"%s\" missing added _e exon number" %(site_id)
+                assert False, "site ID \"%s\" missing added _e exon number" %(site_id)
     f.close()
-    assert tr_len_dic, "ERROR: nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
+    assert tr_len_dic, "nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
     return tr_len_dic
 
 
@@ -2821,10 +2821,10 @@ def get_chromosome_lengths_from_2bit(in_2bit, out_lengths):
             cols = line.strip().split("\t")
             chr_id = cols[0]
             chr_l = int(cols[1])
-            assert chr_id not in chr_len_dic, "ERROR: non-unique chromosome ID \"%s\" encountered in \"%s\"" %(chr_id, out_lengths)
+            assert chr_id not in chr_len_dic, "non-unique chromosome ID \"%s\" encountered in \"%s\"" %(chr_id, out_lengths)
             chr_len_dic[chr_id] = chr_l
     f.closed
-    assert chr_len_dic, "ERROR: chr_len_dic empty (\"%s\" empty?)" %(out_lengths)
+    assert chr_len_dic, "chr_len_dic empty (\"%s\" empty?)" %(out_lengths)
 
     # Return chromosome lengths dic.
     return chr_len_dic
@@ -2853,9 +2853,9 @@ def merge_files(files_list, out_file):
     Merge list of files into one output file.
 
     """
-    assert files_list, "ERROR: given files_list is empty"
+    assert files_list, "given files_list is empty"
     for f in files_list:
-        assert os.path.isfile(f), "ERROR: list file \"%s\" not found" % (f)
+        assert os.path.isfile(f), "list file \"%s\" not found" % (f)
         assert f != out_file, "cat does not like to cat file into same file (%s)" %(check_cmd)
         check_cmd = "cat " + f + " >> " + out_file
         output = subprocess.getoutput(check_cmd)
@@ -2889,7 +2889,7 @@ def fasta_output_dic(fasta_dic, fasta_out,
 
     """
     # Check.
-    assert fasta_dic, "ERROR: given fasta_dic empty"
+    assert fasta_dic, "given fasta_dic empty"
     # Write sequences to FASTA file.
     OUTFA = open(fasta_out,"w")
     for seq_id in fasta_dic:
@@ -3000,7 +3000,7 @@ def gtf_extract_most_prominent_transcripts(in_gtf, out_file,
     print("Read in transcript lengths (exonic lengths) from GTF ... ")
     tr2exc_dic = {}
     tr2len_dic = gtf_get_transcript_lengths(in_gtf, tr2exc_dic=tr2exc_dic)
-    assert tr2len_dic, "ERROR: no transcript lengths read in from --gtf (invalid file format?)"
+    assert tr2len_dic, "no transcript lengths read in from --gtf (invalid file format?)"
     print("# transcripts read in:  %i" %(len(tr2len_dic)))
 
     # Store most prominent transcript.
