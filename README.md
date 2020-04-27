@@ -1,4 +1,6 @@
-# CLIPcontext
+<img src="clipcontext/content/logo.png" alt="CLIPcontext Logo"
+	title="CLIPcontext Logo" width="700" />
+
 CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
 
 ### G2T
@@ -52,6 +54,7 @@ python setup.py install
 Dependencies for CLIPcontext are as follows:
 
 - python3 (tested with version 3.7.3)
+- python packages: seaborn>=0.10.0, matplotlib>=3.1.3, markdown>=3.2.1, pandas>=1.0.3
 - [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.29.0) executables in PATH
 - [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
 - [twoBitInfo](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitInfo) executable in PATH

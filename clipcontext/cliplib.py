@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
 from distutils.spawn import find_executable
+import matplotlib.pyplot as plt
+import seaborn as sns
+from math import log
+import pandas as pd
 import subprocess
 import statistics
 import random
@@ -9,6 +13,7 @@ import uuid
 import sys
 import re
 import os
+
 
 """
 
@@ -3136,6 +3141,1017 @@ def gtf_extract_most_prominent_transcripts(in_gtf, out_file,
         print("%i transcript IDs + additional infos written to:\n%s" %(c_prom_tr, out_file))
     else:
         print("%i transcript IDs written to:\n%s" %(c_prom_tr, out_file))
+
+
+################################################################################
+
+def gtf_get_transcript_infos(tr_ids_dic, in_gtf):
+    """
+    Get transcript infos (transcript biotype, gene ID, gene name, gene biotype)
+    from dictionary of transcript IDs (tr_ids_dic).
+    Return dictionary with:
+    transcript ID -> [transcript biotype, gene ID, gene name, gene biotype]
+
+    >>> tr_ids_dic = {'ENST01': 1}
+    >>> in_gtf = "test_data/gene_test_in.gtf"
+    >>> gtf_get_transcript_infos(tr_ids_dic, in_gtf)
+    {'ENST01': ['lncRNA', 'ENSG01', 'ABC1', 'transcribed_unprocessed_pseudogene']}
+
+    """
+    # Checks.
+    assert tr_ids_dic, "given dictionary tr_ids_dic empty"
+    # Transcript to info dictionary.
+    t2i_dic = {}
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else:
+        f = open(in_gtf, "r")
+    for line in f:
+        # Skip header.
+        if re.search("^#", line):
+            continue
+        cols = line.strip().split("\t")
+        feature = cols[2]
+        infos = cols[8]
+        if not feature == "transcript":
+            continue
+
+        # Extract transcript ID.
+        m = re.search('transcript_id "(.+?)"', infos)
+        assert m, "transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        transcript_id = m.group(1)
+
+        if not transcript_id in tr_ids_dic:
+            continue
+
+        # Extract gene ID.
+        m = re.search('gene_id "(.+?)"', infos)
+        assert m, "gene_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        gene_id = m.group(1)
+        # Extract gene biotype.
+        m = re.search('gene_biotype "(.+?)"', infos)
+        assert m, "gene_biotype entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        gene_biotype = m.group(1)
+        # Extract transcript biotype.
+        m = re.search('transcript_biotype "(.+?)"', infos)
+        assert m, "transcript_biotype entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        tr_biotype = m.group(1)
+        m = re.search('gene_name "(.+?)"', infos)
+        assert m, "gene_name entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        gene_name = m.group(1)
+
+        t2i_dic[transcript_id] = [tr_biotype, gene_id, gene_name, gene_biotype]
+
+    f.close()
+
+    # Check and return to joint.
+    assert t2i_dic, "transcript infos dictionary for given transcript IDs empty"
+    return t2i_dic
+
+
+################################################################################
+
+def gtf_get_gene_biotypes_from_transcript_ids(tr_ids_dic, in_gtf,
+                                              all_gbtc_dic=None):
+    """
+    Get gene IDs from dictionary of transcript IDs (tr_ids_dic), and based
+    on these gene IDs create a dictionary of gene biotype counts.
+    Return dictionary of gene biotype counts.
+
+    all_gbtc_dic:
+    If set, fill this dictionary with gene biotype counts for all genes.
+
+    >>> tr_ids_dic = {'ENST01': 1, 'ENST02': 1}
+    >>> in_gtf = "test_data/gene_test_in.gtf"
+    >>> gtf_get_gene_biotypes_from_transcript_ids(tr_ids_dic, in_gtf)
+    {'transcribed_unprocessed_pseudogene': 2}
+
+    """
+    # Checks.
+    assert tr_ids_dic, "given dictionary tr_ids_dic empty"
+    # transcript to gene ID dictionary.
+    t2g_dic = {}
+    # Gene to biotype dictionary.
+    g2bt_dic = {}
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else:
+        f = open(in_gtf, "r")
+    for line in f:
+        # Skip header.
+        if re.search("^#", line):
+            continue
+        cols = line.strip().split("\t")
+        feature = cols[2]
+        infos = cols[8]
+        if feature == "gene":
+            # Extract gene ID.
+            m = re.search('gene_id "(.+?)"', infos)
+            assert m, "gene_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            gene_id = m.group(1)
+            # Extract gene biotype.
+            m = re.search('gene_biotype "(.+?)"', infos)
+            assert m, "gene_biotype entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            gene_biotype = m.group(1)
+            # Store infos.
+            g2bt_dic[gene_id] = gene_biotype
+            if all_gbtc_dic is not None:
+                if gene_biotype in all_gbtc_dic:
+                    all_gbtc_dic[gene_biotype] += 1
+                else:
+                    all_gbtc_dic[gene_biotype] = 1
+
+        elif feature == "transcript":
+            # Extract gene ID.
+            m = re.search('gene_id "(.+?)"', infos)
+            assert m, "gene_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            gene_id = m.group(1)
+            # Extract transcript ID.
+            m = re.search('transcript_id "(.+?)"', infos)
+            assert m, "transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+            transcript_id = m.group(1)
+            if transcript_id in tr_ids_dic:
+                t2g_dic[transcript_id] = gene_id
+        else:
+            continue
+    f.close()
+    # Create gene biotype counts dictionary for given transcript IDs.
+    gbtc_dic = {}
+    for tr_id in t2g_dic:
+        gene_id = t2g_dic[tr_id]
+        gbt = g2bt_dic[gene_id]
+        if gbt in gbtc_dic:
+            gbtc_dic[gbt] += 1
+        else:
+            gbtc_dic[gbt] = 1
+
+    # Check and return to barracks.
+    assert gbtc_dic, "gene biotype counts dictionary for given transcript IDs empty"
+    return gbtc_dic
+
+
+################################################################################
+
+def cc_g2t_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
+                                cc_logo,
+                                html_report_out=False,
+                                target_gbtc_dic=False,
+                                all_gbtc_dic=False,
+                                t2hc_dic=False,
+                                t2i_dic=False,
+                                kmer_top=10,
+                                target_top=10,
+                                rna=True,
+                                uc_entropy=True,
+                                ):
+    """
+    Generate HTML report for clipcontext g2t, comparing extracted transcript
+    site sequences with genomic site sequences.
+
+    t_seqs_dic:
+    Transcript sites sequences dictionary.
+    g_seqs_dic:
+    Genomic sites sequences dictionary.
+    out_folder:
+    clipcontext g2t results output folder, to store report in.
+    cc_logo:
+    clipcontext logo path for HTML report.
+    html_report_out:
+    HTML report output file.
+    target_gbtc_dic:
+    Gene biotype counts for target set dictionary.
+    all_gbtc_dic:
+    Gene biotype counts for all genes dictionary (gene biotype -> count)
+    t2hc_dic:
+    Transcript ID to hit count (# sites on transcript) dictionary.
+    t2i_dic:
+    Transcript ID to info list dictionary.
+    rna:
+    Set True if input sequences are RNA.
+    uc_entropy:
+    Calculate sequence entropies only for uppercase sequence parts,
+    ignoring the lowercase context sequence parts.
+
+    """
+
+    # Import markdown to generate report.
+    from markdown import markdown
+
+    # Output subfolder for plots.
+    plots_folder = "plots"
+    plots_out_folder = out_folder + "/" + plots_folder
+    if not os.path.exists(plots_out_folder):
+        os.makedirs(plots_out_folder)
+    # Output files.
+    html_out = out_folder + "/" + "report.g2t.html"
+    if html_report_out:
+        html_out = html_report_out
+    md_out = out_folder + "/" + "report.g2t.md"
+    # Plot files.
+    entropy_plot = "sequence_complexity_plot.png"
+    dint_plot = "dint_percentages_plot.png"
+    entropy_plot_out = plots_out_folder + "/" + entropy_plot
+    dint_plot_out = plots_out_folder + "/" + dint_plot
+
+    print("Generate statistics for HTML report ... ")
+
+    # Site numbers.
+    c_t_out = len(t_seqs_dic)
+    c_g_out = len(g_seqs_dic)
+    # Site lengths.
+    t_len_list = get_seq_len_list_from_dic(t_seqs_dic)
+    g_len_list = get_seq_len_list_from_dic(g_seqs_dic)
+    # Get entropy scores for sequences.
+    t_entr_list = seqs_dic_calc_entropies(t_seqs_dic, rna=rna,
+                                          uc_part_only=uc_entropy)
+    g_entr_list = seqs_dic_calc_entropies(g_seqs_dic, rna=rna,
+                                          uc_part_only=uc_entropy)
+    # Get set nucleotide frequencies.
+    t_ntc_dic = seqs_dic_count_nt_freqs(t_seqs_dic, rna=rna,
+                                        convert_to_uc=True)
+    g_ntc_dic = seqs_dic_count_nt_freqs(g_seqs_dic, rna=rna,
+                                        convert_to_uc=True)
+    # Get nucleotide ratios.
+    t_ntr_dic = ntc_dic_to_ratio_dic(t_ntc_dic, perc=True)
+    g_ntr_dic = ntc_dic_to_ratio_dic(g_ntc_dic, perc=True)
+
+    # Get dinucleotide percentages.
+    t_dintr_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 2, rna=rna,
+                                          return_ratios=True,
+                                          perc=True,
+                                          report_key_error=True,
+                                          convert_to_uc=True)
+    g_dintr_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 2, rna=rna,
+                                          return_ratios=True,
+                                          perc=True,
+                                          report_key_error=True,
+                                          convert_to_uc=True)
+    # Get 3-mer percentages.
+    t_3mer_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 3, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    g_3mer_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 3, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    # Get 4-mer percentages.
+    t_4mer_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 4, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    g_4mer_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 4, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    # Get 5-mer percentages.
+    t_5mer_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 5, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    g_5mer_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 5, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+
+    # Check whether logo exists.
+    if os.path.exists(cc_logo):
+        mdtext = """
+<head>
+<title>CLIPcontext - G2T Mode Report</title>
+</head>
+
+<img src="%s" alt="cc_logo"
+	title="cc_logo" width="700" />
+
+<body style="font-family:sans-serif" link="#4b8cb6" vlink="#4b8cb6" alink="#4b8cb6">
+
+""" %(cc_logo)
+    else:
+        mdtext = """
+
+<head>
+<title>CLIPcontext - G2T Mode Report</title>
+</head>
+
+<body style="font-family:sans-serif" link="#4b8cb6" vlink="#4b8cb6" alink="#4b8cb6">
+
+"""
+    # cc sky blue: #8bb9f4
+    # cc dark blue: #32367a
+    # cc petrol: #27467a
+    # cc last blue: #6aa0d3
+    # cc 2nd last blue: #4b8cb6
+
+    # Add first section markdown.
+    mdtext += """
+
+# G2T context set comparison report
+
+List of available statistics to compare sites containing genomic context
+with sites containing transcript context, generated by clipcontext g2t:
+
+- [Context set statistics](#set-stats)
+- [Sequence complexity distribution](#ent-plot)
+- [Di-nucleotide distribution](#dint-plot)
+- [Top k-mer statistics](#kmer-stats)"""
+
+    if target_gbtc_dic and all_gbtc_dic:
+        mdtext += "\n"
+        mdtext += "- [Target gene biotype statistics](#gbt-stats)"
+    if t2hc_dic and t2i_dic:
+        mdtext += "\n"
+        mdtext += "- [Site overlap statistics](#so-stats)"
+    mdtext += "\n&nbsp;\n"
+
+    # Make general stats table.
+    mdtext += """
+## Context set statistics ### {#set-stats}
+
+**Table:** Context set statistics regarding sequence lengths
+(min, max, mean, and median length) in nucleotides (nt),
+sequence complexity (mean Shannon entropy over all sequences in the set)
+and nucleotide contents (A, C, G, U).
+
+"""
+    mdtext += "| Attribute | &nbsp; Transcript context &nbsp; | &nbsp; Genomic context &nbsp; | \n"
+    mdtext += "| :-: | :-: | :-: |\n"
+    mdtext += "| # sites | %i | %i |\n" %(c_t_out, c_g_out)
+    mdtext += "| min site length | %i | %i |\n" %(min(t_len_list), min(g_len_list))
+    mdtext += "| max site length | %i | %i |\n" %(max(t_len_list), max(g_len_list))
+    mdtext += "| mean site length | %.1f | %.1f |\n" %(statistics.mean(t_len_list), statistics.mean(g_len_list))
+    mdtext += "| median site length | %i | %i |\n" %(statistics.median(t_len_list), statistics.median(g_len_list))
+    mdtext += "| mean complexity | %.3f | %.3f |\n" %(statistics.mean(t_entr_list), statistics.mean(g_entr_list))
+    mdtext += '| %A |' + " %.2f | %.2f |\n" %(t_ntr_dic["A"], g_ntr_dic["A"])
+    mdtext += '| %C |' + " %.2f | %.2f |\n" %(t_ntr_dic["C"], g_ntr_dic["C"])
+    mdtext += '| %G |' + " %.2f | %.2f |\n" %(t_ntr_dic["G"], g_ntr_dic["G"])
+    mdtext += '| %U |' + " %.2f | %.2f |\n" %(t_ntr_dic["U"], g_ntr_dic["U"])
+    mdtext += "\n&nbsp;\n&nbsp;\n"
+
+    # Make sequence complexity box plot.
+    create_entropy_box_plot(t_entr_list, g_entr_list, entropy_plot_out)
+    entropy_plot_path = plots_folder + "/" + entropy_plot
+
+    mdtext += """
+## Sequence complexity distribution ### {#ent-plot}
+
+The Shannon entropy is calculated for each sequence to measure
+its information content (i.e., its complexity). A sequence with
+equal amounts of all four nucleotides has an entropy value of 1.0
+(highest possible). A sequence with equal amounts of two nucleotides
+has an entropy value of 0.5. Finally, the lowest possible entropy is
+achieved by a sequence which contains only one type of nucleotide.
+Find the formula used to compute Shannon's entropy
+[here](https://www.ncbi.nlm.nih.gov/pubmed/15215465) (see CE formula).
+
+
+"""
+    mdtext += '<img src="' + entropy_plot_path + '" alt="Sequence complexity distribution"' + "\n"
+    mdtext += 'title="Sequence complexity distribution" width="500" />' + "\n"
+    mdtext += """
+
+**Figure:** Sequence complexity (Shannon entropy
+computed for each sequence) distributions for the genomic and transcript
+context set.
+
+&nbsp;
+
+"""
+    # Make di-nucleotide grouped bar plot.
+    create_dint_ratios_grouped_bar_plot(t_dintr_dic, g_dintr_dic, dint_plot_out)
+    dint_plot_path = plots_folder + "/" + dint_plot
+
+    mdtext += """
+## Di-nucleotide distribution ### {#dint-plot}
+
+Di-nucleotide percentages are shown for the genomic and transcript
+context dataset.
+
+"""
+    mdtext += '<img src="' + dint_plot_path + '" alt="Di-nucleotide distribution"' + "\n"
+    mdtext += 'title="Di-nucleotide distribution" width="1000" />' + "\n"
+    mdtext += """
+
+**Figure:** Di-nucleotide percentages for the the genomic and transcript context dataset.
+
+&nbsp;
+
+"""
+    # Make the k-mer tables.
+    top3mertab = generate_top_kmer_md_table(t_3mer_dic, g_3mer_dic,
+                                            top=kmer_top,
+                                            val_type="p")
+    top4mertab = generate_top_kmer_md_table(t_4mer_dic, g_4mer_dic,
+                                            top=kmer_top,
+                                            val_type="p")
+    top5mertab = generate_top_kmer_md_table(t_5mer_dic, g_5mer_dic,
+                                            top=kmer_top,
+                                            val_type="p")
+    mdtext += """
+## Top k-mer statistics ### {#kmer-stats}
+
+**Table:** Top %i 3-mers for the genomic and transcript context set and their percentages in the respective sequence set. In case of uniform distribution with all 3-mers present, each 3-mer would have a percentage = 1.5625.
+
+""" %(kmer_top)
+    mdtext += top3mertab
+    mdtext += "\n&nbsp;\n"
+
+    mdtext += """
+**Table:** Top %i 4-mers for the genomic and transcript context set and their percentages in the respective sequence set. In case of uniform distribution with all 4-mers present, each 4-mer would have a percentage = 0.390625.
+
+""" %(kmer_top)
+    mdtext += top4mertab
+    mdtext += "\n&nbsp;\n"
+
+    mdtext += """
+**Table:** Top %i 5-mers for the genomic and transcript context set and their percentages in the respective sequence set. In case of uniform distribution with all 5-mers present, each 5-mer would have a percentage = 0.09765625.
+
+""" %(kmer_top)
+    mdtext += top5mertab
+    mdtext += "\n&nbsp;\n&nbsp;\n"
+
+    # Target gene biotype count stats.
+    if target_gbtc_dic and all_gbtc_dic:
+        mdtext += """
+## Target gene biotype statistics ### {#gbt-stats}
+
+**Table:** Target gene biotype counts for transcript context sites and their percentages
+(count normalized by total count for the respective gene biotype).
+
+"""
+        mdtext += "| &nbsp; Gene biotype &nbsp; | &nbsp; Target count &nbsp; | &nbsp; Total count &nbsp; | &nbsp; Percentage &nbsp; | \n"
+        mdtext += "| :-: | :-: | :-: | :-: |\n"
+        unit = " %"
+        for bt, target_c in sorted(target_gbtc_dic.items(), key=lambda item: item[1], reverse=True):
+            all_c = all_gbtc_dic[bt]
+            perc_c = "%.2f" % ((target_c / all_c) * 100)
+            mdtext += "| %s | %i | %i | %s%s |\n" %(bt, target_c, all_c, perc_c, unit)
+        mdtext += "\n&nbsp;\n&nbsp;\n"
+
+    if t2hc_dic and t2i_dic:
+        mdtext += """
+## Site overlap statistics ### {#so-stats}
+
+**Table:** Site overlap statistics, showing the top %i targeted
+regions (transcripts and corresponding genes), with the # overlaps == # of
+transcript context sites overlapping with the region.
+
+""" %(target_top)
+
+        mdtext += "| &nbsp; # overlaps &nbsp; | &nbsp; Transcript ID &nbsp; | &nbsp; &nbsp; Transcript biotype &nbsp; &nbsp; | &nbsp; Gene ID &nbsp; | &nbsp; Gene name &nbsp; | &nbsp; &nbsp; Gene biotype &nbsp; &nbsp; | \n"
+        mdtext += "| :-: | :-: | :-: | :-: | :-: | :-: |\n"
+        i = 0
+        for tr_id, ol_c in sorted(t2hc_dic.items(), key=lambda item: item[1], reverse=True):
+            i += 1
+            if i > target_top:
+                break
+            tr_bt = t2i_dic[tr_id][0]
+            gene_id = t2i_dic[tr_id][1]
+            gene_name = t2i_dic[tr_id][2]
+            gene_bt = t2i_dic[tr_id][3]
+            mdtext += "| %i | %s | %s |  %s | %s | %s |\n" %(ol_c, tr_id, tr_bt, gene_id, gene_name, gene_bt)
+        mdtext += "| ... | &nbsp; | &nbsp; | &nbsp; | &nbsp; | &nbsp; |\n"
+        mdtext += "\n&nbsp;\n&nbsp;\n"
+
+
+    print("Generate HTML report ... ")
+
+    # Convert mdtext to html.
+    md2html = markdown(mdtext, extensions=['attr_list', 'tables'])
+
+    OUTMD = open(md_out,"w")
+    OUTMD.write("%s\n" %(mdtext))
+    OUTMD.close()
+
+    OUTHTML = open(html_out,"w")
+    OUTHTML.write("%s\n" %(md2html))
+    OUTHTML.close()
+
+
+################################################################################
+
+def generate_top_kmer_md_table(t_kmer_dic, g_kmer_dic,
+                               top=5,
+                               val_type="c"):
+    """
+    Given k-mer count dictionaries for genomic and transcript context set,
+    generate a markdown table with top 5 k-mers (sorted by decending
+    dictionary value).
+
+    val_type:
+    Specify type of stored dictionary value.
+    c : count (count of k-mer)
+    r : ratio (k-mer count / total k-mer count)
+    p : percentage ( (k-mer count / total k-mer count) * 100)
+
+    """
+    assert t_kmer_dic, "given dictionary t_kmer_dic empty"
+    assert g_kmer_dic, "given dictionary g_kmer_dic empty"
+    assert re.search("^[c|p|r]$", val_type), "invalid val_type given"
+    # Get size of k.
+    k = 0
+    for kmer in t_kmer_dic:
+        k = len(kmer)
+        break
+    # Expected kmer number.
+    exp_kmer_nr = pow(4,k)
+    t_kmer_nr = 0
+    g_kmer_nr = 0
+    for kmer in t_kmer_dic:
+        kc = t_kmer_dic[kmer]
+        if kc:
+            t_kmer_nr += 1
+    for kmer in g_kmer_dic:
+        kc = g_kmer_dic[kmer]
+        if kc:
+            g_kmer_nr += 1
+    t_kmer_perc = "%.2f " %((t_kmer_nr / exp_kmer_nr) * 100) + " %"
+    g_kmer_perc = "%.2f " %((g_kmer_nr / exp_kmer_nr) * 100) + " %"
+    # Adjust decimal places based on k-mer size.
+    dc_p = 2
+    dc_r = 4
+    if k > 3:
+        for i in range(k-3):
+            dc_p += 1
+            dc_r += 1
+    dc_p_str = "%."+str(dc_p)+"f"
+    dc_r_str = "%."+str(dc_r)+"f"
+    add_ch = ""
+    if val_type == "p":
+        add_ch = " %"
+        # Format percentage to two decimal places.
+        for kmer in t_kmer_dic:
+            new_v = dc_p_str % t_kmer_dic[kmer]
+            t_kmer_dic[kmer] = new_v
+        for kmer in g_kmer_dic:
+            new_v = dc_p_str % g_kmer_dic[kmer]
+            g_kmer_dic[kmer] = new_v
+    elif val_type == "r":
+        # Format percentage to four decimal places.
+        for kmer in t_kmer_dic:
+            new_v = dc_r_str % t_kmer_dic[kmer]
+            t_kmer_dic[kmer] = new_v
+        for kmer in g_kmer_dic:
+            new_v = dc_r_str % g_kmer_dic[kmer]
+            g_kmer_dic[kmer] = new_v
+
+    # Get top j k-mers.
+    i = 0
+    t_topk_list = []
+
+    for kmer, v in sorted(t_kmer_dic.items(), key=lambda item: item[1], reverse=True):
+        i += 1
+        if i > top:
+            break
+        t_topk_list.append(kmer)
+    i = 0
+    g_topk_list = []
+    for kmer, v in sorted(g_kmer_dic.items(), key=lambda item: item[1], reverse=True):
+        i += 1
+        if i > top:
+            break
+        g_topk_list.append(kmer)
+
+    # Generate markdown table.
+    mdtable = "| Rank | &nbsp; &nbsp; Transcript context &nbsp; &nbsp; | &nbsp; &nbsp; Genomic context &nbsp; &nbsp;|\n"
+    mdtable += "| :-: | :-: | :-: |\n"
+    for i in range(top):
+        t_kmer = t_topk_list[i]
+        g_kmer = g_topk_list[i]
+        pos = i + 1
+        mdtable += "| %i | %s (%s%s) | %s (%s%s) |\n" %(pos, t_kmer, str(t_kmer_dic[t_kmer]), add_ch, g_kmer, str(g_kmer_dic[g_kmer]), add_ch)
+
+    mdtable += "| ... | &nbsp; | &nbsp; |\n"
+    mdtable += "| # distinct k-mers | %i (%s) | %i (%s) |\n" %(t_kmer_nr, t_kmer_perc, g_kmer_nr, g_kmer_perc)
+
+    # Return markdown table.
+    return mdtable
+
+
+################################################################################
+
+def create_dint_ratios_grouped_bar_plot(t_dintr_dic, g_dintr_dic, out_plot):
+    """
+    Create a grouped bar plot, showing the di-nucleotide ratios (16 classes)
+    in the transcript context and genomic context set.
+    Input ratio dictionaries for both contexts, with key being
+    di-nucleotide and value the ratio.
+    Create a dataframe using Pandas, and use seaborn for plotting.
+    Store plot in out_plot.
+
+    #8bb9f4 : cc sky blue
+    #ca3882 : cc pink
+    #fac443 : cc yellow
+    #32367a : cc dark blue
+    #563679 : cc purple
+    #27467a : cc petrol
+
+    """
+
+    # Checker.
+    assert t_dintr_dic, "given dictionary t_dintr_dic empty"
+    assert g_dintr_dic, "given dictionary g_dintr_dic empty"
+    # Make pandas dataframe.
+    t_label = "Transcript context"
+    g_label = "Genomic context"
+    data = {'set': [], 'dint': [], 'perc': []}
+    for dint in t_dintr_dic:
+        data['set'].append(t_label)
+        data['dint'].append(dint)
+        data['perc'].append(t_dintr_dic[dint])
+    for dint in g_dintr_dic:
+        data['set'].append(g_label)
+        data['dint'].append(dint)
+        data['perc'].append(g_dintr_dic[dint])
+    df = pd.DataFrame (data, columns = ['set','dint', 'perc'])
+
+    # Make plot.
+    sns.set(style="darkgrid")
+    g = sns.catplot(x="dint", y="perc", hue="set", data=df, height=6,
+                    kind="bar", palette=["#8bb9f4", "#27467a"],
+                    edgecolor="lightgrey",
+                    legend=False)
+    g.fig.set_figwidth(16)
+    g.fig.set_figheight(4)
+    # Modify axes.
+    ax = g.axes
+    ax[0,0].set_ylabel("Percentage (%)",fontsize=20)
+    ax[0,0].set(xlabel=None)
+    ax[0,0].tick_params(axis='x', labelsize=20)
+    ax[0,0].tick_params(axis='y', labelsize=16)
+    # Add legend at specific position.
+    plt.legend(loc=(1.01, 0.4), fontsize=16)
+    g.savefig(out_plot, dpi=100, bbox_inches='tight')
+
+
+################################################################################
+
+def create_entropy_box_plot(t_entr_list, g_entr_list, out_plot):
+    """
+    Create a box plot, to compare sequence entropies found in genomic and
+    transcript context set.
+
+    #8bb9f4 : cc sky blue
+
+    """
+    # Checker.
+    assert t_entr_list, "given list t_entr_list empty"
+    assert g_entr_list, "given list g_entr_list empty"
+    # Make pandas dataframe.
+    pos_label = "Transcript context"
+    neg_label = "Genomic context"
+    data = {'set': [], 'entropy': []}
+    pos_c = len(t_entr_list)
+    neg_c = len(g_entr_list)
+    data['set'] += pos_c*[pos_label] + neg_c*[neg_label]
+    data['entropy'] += t_entr_list + g_entr_list
+    df = pd.DataFrame (data, columns = ['set','entropy'])
+
+    # Make plot.
+    sns.set(style="darkgrid")
+    fig, ax = plt.subplots()
+    sns.boxplot(x="set", y="entropy", data=df, palette=['#8bb9f4','#8bb9f4'],
+                width=0.7, linewidth = 1.5, boxprops=dict(alpha=1.0))
+    # Modify.
+    ax.set_ylabel("Sequence complexity",fontsize=18)
+    ax.tick_params(axis='x', labelsize=18)
+    ax.tick_params(axis='y', labelsize=12)
+    ax.set(xlabel=None)
+    # Store plot.
+    fig.savefig(out_plot, dpi=125, bbox_inches='tight')
+
+
+################################################################################
+
+def seqs_dic_count_kmer_freqs(seqs_dic, k,
+                              rna=False,
+                              perc=False,
+                              return_ratios=False,
+                              report_key_error=True,
+                              convert_to_uc=False):
+    """
+
+    k-mer (k-mer %)
+
+    Given a dictionary with sequences seqs_dic, count how many times each
+    k-mer is found over all sequences (== get k-mer frequencies).
+    Return k-mer frequencies count dictionary.
+    By default, a DNA dictionary is used, and key errors will be reported.
+
+    rna:
+    Instead of DNA dictionary, use RNA dictionary (ACGU) for counting
+    k-mers.
+    perc:
+    If True, make percentages out of ratios (*100).
+    return_ratios:
+    Return di-nucleotide ratios instead of frequencies (== counts).
+    report_key_error:
+    If True, report key error (di-nucleotide not in count_dic).
+    convert_to_uc:
+    Convert sequences to uppercase before counting.
+
+    >>> seqs_dic = {'seq1': 'AACGTC', 'seq2': 'GGACT'}
+    >>> seqs_dic_count_kmer_freqs(seqs_dic, 2)
+    {'AA': 1, 'AC': 2, 'AG': 0, 'AT': 0, 'CA': 0, 'CC': 0, 'CG': 1, 'CT': 1, 'GA': 1, 'GC': 0, 'GG': 1, 'GT': 1, 'TA': 0, 'TC': 1, 'TG': 0, 'TT': 0}
+    >>> seqs_dic = {'seq1': 'AAACGT'}
+    >>> seqs_dic_count_kmer_freqs(seqs_dic, 2, return_ratios=True, perc=True)
+    {'AA': 40.0, 'AC': 20.0, 'AG': 0.0, 'AT': 0.0, 'CA': 0.0, 'CC': 0.0, 'CG': 20.0, 'CT': 0.0, 'GA': 0.0, 'GC': 0.0, 'GG': 0.0, 'GT': 20.0, 'TA': 0.0, 'TC': 0.0, 'TG': 0.0, 'TT': 0.0}
+
+    """
+    # Checks.
+    assert seqs_dic, "given dictinary seqs_dic empty"
+    assert k, "invalid k given"
+    assert k > 0, "invalid k given"
+    # Get k-mer dictionary.
+    count_dic = get_kmer_dic(k, rna=rna)
+    # Count k-mers for all sequences in seqs_dic.
+    total_c = 0
+    for seq_id in seqs_dic:
+        seq = seqs_dic[seq_id]
+        if convert_to_uc:
+            seq = seq.upper()
+        for i in range(len(seq)-k+1):
+            kmer = seq[i:i+k]
+            if report_key_error:
+                assert kmer in count_dic, "k-mer \"%s\" not in count_dic" %(kmer)
+            if kmer in count_dic:
+                count_dic[kmer] += 1
+                total_c += 1
+    assert total_c, "no k-mers counted for given seqs_dic"
+
+    # Calculate ratios.
+    if return_ratios:
+        for kmer in count_dic:
+            ratio = count_dic[kmer] / total_c
+            if perc:
+                count_dic[kmer] = ratio*100
+            else:
+                count_dic[kmer] = ratio
+    # Return k-mer counts or ratios.
+    return count_dic
+
+
+################################################################################
+
+def ntc_dic_to_ratio_dic(ntc_dic,
+                         perc=False):
+    """
+    Given a dictionary of nucleotide counts, return dictionary of nucleotide
+    ratios (count / total nucleotide number).
+
+    perc:
+    If True, make percentages out of ratios (*100).
+
+    >>> ntc_dic = {'A': 5, 'C': 2, 'G': 2, 'T': 1}
+    >>> ntc_dic_to_ratio_dic(ntc_dic)
+    {'A': 0.5, 'C': 0.2, 'G': 0.2, 'T': 0.1}
+
+    """
+    assert ntc_dic, "given dictionary ntc_dic empty"
+    # Get total number.
+    total_n = 0
+    for nt in ntc_dic:
+        total_n += ntc_dic[nt]
+    ntr_dic = {}
+    for nt in ntc_dic:
+        ntc = ntc_dic[nt]
+        ntr = ntc / total_n
+        if perc:
+            ntr = ntr*100
+        ntr_dic[nt] = ntr
+    return ntr_dic
+
+
+################################################################################
+
+def seqs_dic_count_nt_freqs(seqs_dic,
+                            rna=False,
+                            convert_to_uc=False,
+                            count_dic=False):
+    """
+    Given a dictionary with sequences seqs_dic, count how many times each
+    nucleotide is found in all sequences (== get nt frequencies).
+    Return nucleotide frequencies count dictionary.
+
+    By default, a DNA dictionary (A,C,G,T) is used, counting only these
+    characters (note they are uppercase!).
+
+    rna:
+    Instead of DNA dictionary, use RNA dictionary (A,C,G,U) for counting.
+
+    convert_to_uc:
+    Convert sequences to uppercase before counting.
+
+    count_dic:
+    Supply a custom dictionary for counting only characters in
+    this dictionary + adding counts to this dictionary.
+
+    >>> seqs_dic = {'s1': 'AAAA', 's2': 'CCCGGT'}
+    >>> seqs_dic_count_nt_freqs(seqs_dic)
+    {'A': 4, 'C': 3, 'G': 2, 'T': 1}
+    >>> seqs_dic_count_nt_freqs(seqs_dic, rna=True)
+    {'A': 4, 'C': 3, 'G': 2, 'U': 0}
+
+    """
+    assert seqs_dic, "given dictionary seqs_dic empty"
+    if not count_dic:
+        count_dic = {'A': 0, 'C': 0, 'G': 0, 'T': 0}
+        if rna:
+            count_dic = {'A': 0, 'C': 0, 'G': 0, 'U': 0}
+    for seq_id in seqs_dic:
+        seq = seqs_dic[seq_id]
+        if convert_to_uc:
+            seq = seq.upper()
+        seq_count_nt_freqs(seq, rna=rna, count_dic=count_dic)
+    return count_dic
+
+
+################################################################################
+
+def seqs_dic_calc_entropies(seqs_dic,
+                            rna=True,
+                            uc_part_only=True):
+    """
+    Given a dictionary of sequences, calculate entropies for each sequence
+    and return list of entropy values.
+
+    seqs_dic:
+    Dictionary with sequences.
+
+    rna:
+    Use RNA alphabet for counting (uppercase chars only)
+
+    uc_part_only:
+    Calculate entropy only for uppercase part of sequence
+
+    >>> seqs_dic = {'seq1': 'AAAAAAAA', 'seq2': 'AAAACCCC', 'seq3': 'AACCGGUU'}
+    >>> seqs_dic_calc_entropies(seqs_dic)
+    [0, 0.5, 1.0]
+
+    """
+    assert seqs_dic, "given dictionary seqs_dic empty"
+    entr_list = []
+    for seq_id in seqs_dic:
+        seq = seqs_dic[seq_id]
+        seq_l = len(seq)
+        new_seq = seq
+        # If only uppercase part should be used.
+        if uc_part_only:
+            m = re.search("[acgtu]*([ACGTU]+)[acgtu]*", seq)
+            assert m, "uppercase sequence part extraction failed for sequence ID \"%s\" and sequence \"%s\"" %(seq_id, seq)
+            new_seq = m.group(1)
+            seq_l = len(new_seq)
+        # Make uppercase (otherwise seq_l not correct).
+        new_seq = new_seq.upper()
+        # Get nt count dic.
+        count_dic = seq_count_nt_freqs(new_seq, rna=rna)
+        # Calculate sequence entropy.
+        seq_entr = calc_seq_entropy(seq_l, count_dic)
+        #if seq_entr > 0.5:
+        #    print("Entropy: %.2f" %(seq_entr))
+        #    print("%s: %s" %(seq_id, seq))
+        entr_list.append(seq_entr)
+    return entr_list
+
+
+################################################################################
+
+def seq_count_nt_freqs(seq,
+                       rna=False,
+                       count_dic=False):
+    """
+    Count nucleotide (character) frequencies in given sequence seq.
+    Return count_dic with frequencies.
+    If count_dic is given, add count to count_dic.
+
+    rna:
+    Instead of DNA dictionary, use RNA dictionary (A,C,G,U) for counting.
+
+    count_dic:
+    Supply a custom dictionary for counting only characters in
+    this dictionary + adding counts to this dictionary.
+
+    >>> seq = 'AAAACCCGGT'
+    >>> seq_count_nt_freqs(seq)
+    {'A': 4, 'C': 3, 'G': 2, 'T': 1}
+    >>> seq = 'acgtacgt'
+    >>> seq_count_nt_freqs(seq)
+    {'A': 0, 'C': 0, 'G': 0, 'T': 0}
+
+    """
+
+    assert seq, "given sequence string seq empty"
+    if not count_dic:
+        count_dic = {'A': 0, 'C': 0, 'G': 0, 'T': 0}
+        if rna:
+            count_dic = {'A': 0, 'C': 0, 'G': 0, 'U': 0}
+    # Conver to list.
+    seq_list = list(seq)
+    for nt in seq_list:
+        if nt in count_dic:
+            count_dic[nt] += 1
+    return count_dic
+
+
+################################################################################
+
+def calc_seq_entropy(seq_l, ntc_dic):
+    """
+    Given a dictionary of nucleotide counts for a sequence ntc_dic and
+    the length of the sequence seq_l, compute the Shannon entropy of
+    the sequence.
+
+    Formula (see CE formula) taken from:
+    https://www.ncbi.nlm.nih.gov/pubmed/15215465
+
+    >>> seq_l = 8
+    >>> ntc_dic = {'A': 8, 'C': 0, 'G': 0, 'U': 0}
+    >>> calc_seq_entropy(seq_l, ntc_dic)
+    0
+    >>> ntc_dic = {'A': 4, 'C': 4, 'G': 0, 'U': 0}
+    >>> calc_seq_entropy(seq_l, ntc_dic)
+    0.5
+    >>> ntc_dic = {'A': 2, 'C': 2, 'G': 2, 'U': 2}
+    >>> calc_seq_entropy(seq_l, ntc_dic)
+    1.0
+
+    """
+    # For DNA or RNA, k = 4.
+    k = 4
+    # Shannon entropy.
+    ce = 0
+    for nt in ntc_dic:
+        c = ntc_dic[nt]
+        if c != 0:
+            ce += (c/seq_l) * log((c/seq_l), k)
+    if ce == 0:
+        return 0
+    else:
+        return -1*ce
+
+
+################################################################################
+
+def get_seq_len_list_from_dic(seqs_dic):
+    """
+    Given a dictinary with sequences, return a list of sequence lengths.
+
+    >>> seqs_dic = {'seq1':'ACGT', 'seq2': 'ACGTACGT'}
+    >>> get_seq_len_list_from_dic(seqs_dic)
+    [4, 8]
+
+    """
+    assert seqs_dic, "sequences dictionary seqs_dic empty"
+    len_list = []
+    for seq_id in seqs_dic:
+        len_list.append(len(seqs_dic[seq_id]))
+    assert len_list, "sequence lengths list len_list empty"
+    return len_list
+
+
+################################################################################
+
+def get_kmer_dic(k,
+                 rna=False):
+    """
+    Return a dictionary of k-mers. By default, DNA alphabet is used (ACGT).
+    Value for each k-mer key is set to 0.
+
+    rna:
+    Use RNA alphabet (ACGU).
+
+    >>> get_kmer_dic(1)
+    {'A': 0, 'C': 0, 'G': 0, 'T': 0}
+    >>> get_kmer_dic(2, rna=True)
+    {'AA': 0, 'AC': 0, 'AG': 0, 'AU': 0, 'CA': 0, 'CC': 0, 'CG': 0, 'CU': 0, 'GA': 0, 'GC': 0, 'GG': 0, 'GU': 0, 'UA': 0, 'UC': 0, 'UG': 0, 'UU': 0}
+
+    """
+    # Check.
+    assert k, "invalid k given"
+    assert k > 0, "invalid k given"
+    # Dictionary.
+    mer2c_dic = {}
+    # Alphabet.
+    nts = ["A", "C", "G", "T"]
+    if rna:
+        nts = ["A", "C", "G", "U"]
+    # Recursive k-mer dictionary creation.
+    def fill(i, seq, mer2c_dic):
+        if i:
+            for nt in nts:
+                fill(i-1, seq+nt, mer2c_dic)
+        else:
+            mer2c_dic[seq] = 0
+    fill(k, "", mer2c_dic)
+    return mer2c_dic
 
 
 ################################################################################
