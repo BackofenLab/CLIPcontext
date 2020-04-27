@@ -1,5 +1,4 @@
-<img src="clipcontext/content/logo.png" alt="CLIPcontext Logo"
-	title="CLIPcontext Logo" width="700" />
+# CLIPcontext
 
 CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
 
