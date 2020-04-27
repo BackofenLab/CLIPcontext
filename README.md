@@ -53,7 +53,7 @@ python setup.py install
 Dependencies for CLIPcontext are as follows:
 
 - python3 (tested with version 3.7.3)
-- python packages: seaborn>=0.10.0, matplotlib>=3.1.3, markdown>=3.2.1, pandas>=1.0.3
+- python libraries: seaborn>=0.10.0, matplotlib>=3.1.3, markdown>=3.2.1, pandas>=1.0.3
 - [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.29.0) executables in PATH
 - [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
 - [twoBitInfo](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitInfo) executable in PATH
@@ -156,6 +156,9 @@ optional arguments:
                         matches (default: False)
   --gen-uniq-ids        Generate unique column 4 IDs for --in BED file entries
                         (default: False)
+  --report              Output an .html report with statistics and plots
+                        comparing transcript and genomic sequences (default:
+                        False)
 
 required arguments:
   --in str              Genomic regions (hg38) BED file (6-column format)
@@ -176,7 +179,7 @@ In **G2T** mode, CLIPcontext first reads in the transcript IDs (--tr) and extrac
 After optionally filtering the input sites (--in) by score or length, the full-length sites are mapped to the given set of transcripts. This is mainly done to identify regions at exon borders. CLIPcontext performs mapping to the transcriptome only for genomic sites that show considerable overlap with an exonic region (by default >= 90%, --min-exon-ol 0.9). Identified border regions are merged by default (--merge-mode 1) if they overlap after applying --merge-ext (i.e., for each overlapping set of sites select the site with the highest score). Merging is done since for RBPs that bind to exonic regions, peaks called at adjacent exon ends often originate from the same binding event. In case all overlapping sites should be merged (not only sites at exon borders), use --merge-mode 2. If merging should be skipped altogether, use --merge-mode 3. Only sites that map to a single exonic region (uniquely mapped sites) are kept for subsequent sequence extraction. Non-unique matches are output only in BED format (see unique + non-unique matches on transcripts BED below).
 Merged and uniquely mapped sites are then mapped again to the transcriptome, this time only taking their center positions for mapping. After center-position mapping, extension by --seq-ext is performed for both transcript sites and genomic sites to get both their transcript and genomic context sequences. Transcript regions without full extension indicate their location near transcript ends.
 
-At the end of the run, an overview with short discriptions for each output file is printed out (--out test_out):
+At the end of the run, an overview with short discriptions for each output file is printed out (--out test_out, --report enabled):
 
 ```
 ....
@@ -219,8 +222,16 @@ test_out/genomic_sites.cp.ext.bed
 Genomic sites center positions extended .fa:
 test_out/genomic_sites.cp.ext.fa
 
+G2T CONTEXT SET COMPARISON HTML REPORT
+======================================
+G2T context set comparison report .html:
+test_out/report.g2t.html
+
 ```
-Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
+Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). If --report is set, an HTML report is output as well, providing comparative statistics for the generated transcript context and genomic context sequences. Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
+
+
+compare sites containing genomic context with sites containing transcript context
 
 ### T2G
 
