@@ -49,6 +49,9 @@ cd CLIPcontext
 python setup.py install
 ```
 
+CLIPcontext can also be installed via [conda](https://anaconda.org/bioconda/clipcontext). This is the most convenient way to install CLIPcontext, since conda takes care of all the dependencies. Note however that the conda version might not always be the latest release.
+
+
 ### Dependencies
 Dependencies for CLIPcontext are as follows:
 
@@ -57,6 +60,7 @@ Dependencies for CLIPcontext are as follows:
 - [bedtools](https://github.com/arq5x/bedtools2/releases)  (tested with version 2.29.0) executables in PATH
 - [twoBitToFa](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa) executable in PATH
 - [twoBitInfo](http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitInfo) executable in PATH
+
 
 ### Dataset requirements
 CLIPcontext was implemented to work with and tested on human datasets retrieved from [Ensembl](http://www.ensembl.org/index.html). If you want to use CLIPcontext for different organisms or with datasets from different ressources, feel free to open up an issue.
