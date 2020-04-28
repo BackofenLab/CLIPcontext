@@ -3340,7 +3340,7 @@ def cc_g2t_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
     from markdown import markdown
 
     # Output subfolder for plots.
-    plots_folder = "plots"
+    plots_folder = "plots_g2t"
     plots_out_folder = out_folder + "/" + plots_folder
     if not os.path.exists(plots_out_folder):
         os.makedirs(plots_out_folder)
@@ -3627,9 +3627,9 @@ transcript context sites overlapping with the region.
     # Convert mdtext to html.
     md2html = markdown(mdtext, extensions=['attr_list', 'tables'])
 
-    OUTMD = open(md_out,"w")
-    OUTMD.write("%s\n" %(mdtext))
-    OUTMD.close()
+    #OUTMD = open(md_out,"w")
+    #OUTMD.write("%s\n" %(mdtext))
+    #OUTMD.close()
 
     OUTHTML = open(html_out,"w")
     OUTHTML.write("%s\n" %(md2html))
@@ -4152,6 +4152,350 @@ def get_kmer_dic(k,
             mer2c_dic[seq] = 0
     fill(k, "", mer2c_dic)
     return mer2c_dic
+
+
+################################################################################
+
+def cc_t2g_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
+                                cc_logo,
+                                html_report_out=False,
+                                target_gbtc_dic=False,
+                                all_gbtc_dic=False,
+                                t2hc_dic=False,
+                                t2i_dic=False,
+                                kmer_top=10,
+                                target_top=10,
+                                rna=True,
+                                uc_entropy=True,
+                                ):
+    """
+    Generate HTML report for clipcontext t2g, comparing extracted transcript
+    site sequences with genomic site sequences.
+
+    t_seqs_dic:
+    Transcript sites sequences dictionary.
+    g_seqs_dic:
+    Genomic sites sequences dictionary.
+    out_folder:
+    clipcontext t2g results output folder, to store report in.
+    cc_logo:
+    clipcontext logo path for HTML report.
+    html_report_out:
+    HTML report output file.
+    target_gbtc_dic:
+    Gene biotype counts for target set dictionary.
+    all_gbtc_dic:
+    Gene biotype counts for all genes dictionary (gene biotype -> count)
+    t2hc_dic:
+    Transcript ID to hit count (# sites on transcript) dictionary.
+    t2i_dic:
+    Transcript ID to info list dictionary.
+    rna:
+    Set True if input sequences are RNA.
+    uc_entropy:
+    Calculate sequence entropies only for uppercase sequence parts,
+    ignoring the lowercase context sequence parts.
+
+    """
+
+    # Import markdown to generate report.
+    from markdown import markdown
+
+    # Output subfolder for plots.
+    plots_folder = "plots_t2g"
+    plots_out_folder = out_folder + "/" + plots_folder
+    if not os.path.exists(plots_out_folder):
+        os.makedirs(plots_out_folder)
+    # Output files.
+    html_out = out_folder + "/" + "report.t2g.html"
+    if html_report_out:
+        html_out = html_report_out
+    md_out = out_folder + "/" + "report.t2g.md"
+    # Plot files.
+    entropy_plot = "sequence_complexity_plot.png"
+    dint_plot = "dint_percentages_plot.png"
+    entropy_plot_out = plots_out_folder + "/" + entropy_plot
+    dint_plot_out = plots_out_folder + "/" + dint_plot
+
+    print("Generate statistics for HTML report ... ")
+
+    # Site numbers.
+    c_t_out = len(t_seqs_dic)
+    c_g_out = len(g_seqs_dic)
+    # Site lengths.
+    t_len_list = get_seq_len_list_from_dic(t_seqs_dic)
+    g_len_list = get_seq_len_list_from_dic(g_seqs_dic)
+    # Get entropy scores for sequences.
+    t_entr_list = seqs_dic_calc_entropies(t_seqs_dic, rna=rna,
+                                          uc_part_only=uc_entropy)
+    g_entr_list = seqs_dic_calc_entropies(g_seqs_dic, rna=rna,
+                                          uc_part_only=uc_entropy)
+    # Get set nucleotide frequencies.
+    t_ntc_dic = seqs_dic_count_nt_freqs(t_seqs_dic, rna=rna,
+                                        convert_to_uc=True)
+    g_ntc_dic = seqs_dic_count_nt_freqs(g_seqs_dic, rna=rna,
+                                        convert_to_uc=True)
+    # Get nucleotide ratios.
+    t_ntr_dic = ntc_dic_to_ratio_dic(t_ntc_dic, perc=True)
+    g_ntr_dic = ntc_dic_to_ratio_dic(g_ntc_dic, perc=True)
+
+    # Get dinucleotide percentages.
+    t_dintr_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 2, rna=rna,
+                                          return_ratios=True,
+                                          perc=True,
+                                          report_key_error=True,
+                                          convert_to_uc=True)
+    g_dintr_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 2, rna=rna,
+                                          return_ratios=True,
+                                          perc=True,
+                                          report_key_error=True,
+                                          convert_to_uc=True)
+    # Get 3-mer percentages.
+    t_3mer_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 3, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    g_3mer_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 3, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    # Get 4-mer percentages.
+    t_4mer_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 4, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    g_4mer_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 4, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    # Get 5-mer percentages.
+    t_5mer_dic = seqs_dic_count_kmer_freqs(t_seqs_dic, 5, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+    g_5mer_dic = seqs_dic_count_kmer_freqs(g_seqs_dic, 5, rna=rna,
+                                         return_ratios=True,
+                                         perc=True,
+                                         report_key_error=True,
+                                         convert_to_uc=True)
+
+    # Check whether logo exists.
+    if os.path.exists(cc_logo):
+        mdtext = """
+<head>
+<title>CLIPcontext - T2G Mode Report</title>
+</head>
+
+<img src="%s" alt="cc_logo"
+	title="cc_logo" width="700" />
+
+<body style="font-family:sans-serif" link="#4b8cb6" vlink="#4b8cb6" alink="#4b8cb6">
+
+""" %(cc_logo)
+    else:
+        mdtext = """
+
+<head>
+<title>CLIPcontext - T2G Mode Report</title>
+</head>
+
+<body style="font-family:sans-serif" link="#4b8cb6" vlink="#4b8cb6" alink="#4b8cb6">
+
+"""
+    # cc sky blue: #8bb9f4
+    # cc dark blue: #32367a
+    # cc petrol: #27467a
+    # cc last blue: #6aa0d3
+    # cc 2nd last blue: #4b8cb6
+
+    # Add first section markdown.
+    mdtext += """
+
+# T2G context set comparison report
+
+List of available statistics to compare sites containing genomic context
+with sites containing transcript context, generated by clipcontext t2g:
+
+- [Context set statistics](#set-stats)
+- [Sequence complexity distribution](#ent-plot)
+- [Di-nucleotide distribution](#dint-plot)
+- [Top k-mer statistics](#kmer-stats)"""
+
+    if target_gbtc_dic and all_gbtc_dic:
+        mdtext += "\n"
+        mdtext += "- [Target gene biotype statistics](#gbt-stats)"
+    if t2hc_dic and t2i_dic:
+        mdtext += "\n"
+        mdtext += "- [Site overlap statistics](#so-stats)"
+    mdtext += "\n&nbsp;\n"
+
+    # Make general stats table.
+    mdtext += """
+## Context set statistics ### {#set-stats}
+
+**Table:** Context set statistics regarding sequence lengths
+(min, max, mean, and median length) in nucleotides (nt),
+sequence complexity (mean Shannon entropy over all sequences in the set)
+and nucleotide contents (A, C, G, U).
+
+"""
+    mdtext += "| Attribute | &nbsp; Transcript context &nbsp; | &nbsp; Genomic context &nbsp; | \n"
+    mdtext += "| :-: | :-: | :-: |\n"
+    mdtext += "| # sites | %i | %i |\n" %(c_t_out, c_g_out)
+    mdtext += "| min site length | %i | %i |\n" %(min(t_len_list), min(g_len_list))
+    mdtext += "| max site length | %i | %i |\n" %(max(t_len_list), max(g_len_list))
+    mdtext += "| mean site length | %.1f | %.1f |\n" %(statistics.mean(t_len_list), statistics.mean(g_len_list))
+    mdtext += "| median site length | %i | %i |\n" %(statistics.median(t_len_list), statistics.median(g_len_list))
+    mdtext += "| mean complexity | %.3f | %.3f |\n" %(statistics.mean(t_entr_list), statistics.mean(g_entr_list))
+    mdtext += '| %A |' + " %.2f | %.2f |\n" %(t_ntr_dic["A"], g_ntr_dic["A"])
+    mdtext += '| %C |' + " %.2f | %.2f |\n" %(t_ntr_dic["C"], g_ntr_dic["C"])
+    mdtext += '| %G |' + " %.2f | %.2f |\n" %(t_ntr_dic["G"], g_ntr_dic["G"])
+    mdtext += '| %U |' + " %.2f | %.2f |\n" %(t_ntr_dic["U"], g_ntr_dic["U"])
+    mdtext += "\n&nbsp;\n&nbsp;\n"
+
+    # Make sequence complexity box plot.
+    create_entropy_box_plot(t_entr_list, g_entr_list, entropy_plot_out)
+    entropy_plot_path = plots_folder + "/" + entropy_plot
+
+    mdtext += """
+## Sequence complexity distribution ### {#ent-plot}
+
+The Shannon entropy is calculated for each sequence to measure
+its information content (i.e., its complexity). A sequence with
+equal amounts of all four nucleotides has an entropy value of 1.0
+(highest possible). A sequence with equal amounts of two nucleotides
+has an entropy value of 0.5. Finally, the lowest possible entropy is
+achieved by a sequence which contains only one type of nucleotide.
+Find the formula used to compute Shannon's entropy
+[here](https://www.ncbi.nlm.nih.gov/pubmed/15215465) (see CE formula).
+
+
+"""
+    mdtext += '<img src="' + entropy_plot_path + '" alt="Sequence complexity distribution"' + "\n"
+    mdtext += 'title="Sequence complexity distribution" width="500" />' + "\n"
+    mdtext += """
+
+**Figure:** Sequence complexity (Shannon entropy
+computed for each sequence) distributions for the genomic and transcript
+context set.
+
+&nbsp;
+
+"""
+    # Make di-nucleotide grouped bar plot.
+    create_dint_ratios_grouped_bar_plot(t_dintr_dic, g_dintr_dic, dint_plot_out)
+    dint_plot_path = plots_folder + "/" + dint_plot
+
+    mdtext += """
+## Di-nucleotide distribution ### {#dint-plot}
+
+Di-nucleotide percentages are shown for the genomic and transcript
+context dataset.
+
+"""
+    mdtext += '<img src="' + dint_plot_path + '" alt="Di-nucleotide distribution"' + "\n"
+    mdtext += 'title="Di-nucleotide distribution" width="1000" />' + "\n"
+    mdtext += """
+
+**Figure:** Di-nucleotide percentages for the the genomic and transcript context dataset.
+
+&nbsp;
+
+"""
+    # Make the k-mer tables.
+    top3mertab = generate_top_kmer_md_table(t_3mer_dic, g_3mer_dic,
+                                            top=kmer_top,
+                                            val_type="p")
+    top4mertab = generate_top_kmer_md_table(t_4mer_dic, g_4mer_dic,
+                                            top=kmer_top,
+                                            val_type="p")
+    top5mertab = generate_top_kmer_md_table(t_5mer_dic, g_5mer_dic,
+                                            top=kmer_top,
+                                            val_type="p")
+    mdtext += """
+## Top k-mer statistics ### {#kmer-stats}
+
+**Table:** Top %i 3-mers for the genomic and transcript context set and their percentages in the respective sequence set. In case of uniform distribution with all 3-mers present, each 3-mer would have a percentage = 1.5625.
+
+""" %(kmer_top)
+    mdtext += top3mertab
+    mdtext += "\n&nbsp;\n"
+
+    mdtext += """
+**Table:** Top %i 4-mers for the genomic and transcript context set and their percentages in the respective sequence set. In case of uniform distribution with all 4-mers present, each 4-mer would have a percentage = 0.390625.
+
+""" %(kmer_top)
+    mdtext += top4mertab
+    mdtext += "\n&nbsp;\n"
+
+    mdtext += """
+**Table:** Top %i 5-mers for the genomic and transcript context set and their percentages in the respective sequence set. In case of uniform distribution with all 5-mers present, each 5-mer would have a percentage = 0.09765625.
+
+""" %(kmer_top)
+    mdtext += top5mertab
+    mdtext += "\n&nbsp;\n&nbsp;\n"
+
+    # Target gene biotype count stats.
+    if target_gbtc_dic and all_gbtc_dic:
+        mdtext += """
+## Target gene biotype statistics ### {#gbt-stats}
+
+**Table:** Target gene biotype counts for transcript context sites and their percentages
+(count normalized by total count for the respective gene biotype).
+
+"""
+        mdtext += "| &nbsp; Gene biotype &nbsp; | &nbsp; Target count &nbsp; | &nbsp; Total count &nbsp; | &nbsp; Percentage &nbsp; | \n"
+        mdtext += "| :-: | :-: | :-: | :-: |\n"
+        unit = " %"
+        for bt, target_c in sorted(target_gbtc_dic.items(), key=lambda item: item[1], reverse=True):
+            all_c = all_gbtc_dic[bt]
+            perc_c = "%.2f" % ((target_c / all_c) * 100)
+            mdtext += "| %s | %i | %i | %s%s |\n" %(bt, target_c, all_c, perc_c, unit)
+        mdtext += "\n&nbsp;\n&nbsp;\n"
+
+    if t2hc_dic and t2i_dic:
+        mdtext += """
+## Site overlap statistics ### {#so-stats}
+
+**Table:** Site overlap statistics, showing the top %i targeted
+regions (transcripts and corresponding genes), with the # overlaps == # of
+transcript context sites overlapping with the region.
+
+""" %(target_top)
+
+        mdtext += "| &nbsp; # overlaps &nbsp; | &nbsp; Transcript ID &nbsp; | &nbsp; &nbsp; Transcript biotype &nbsp; &nbsp; | &nbsp; Gene ID &nbsp; | &nbsp; Gene name &nbsp; | &nbsp; &nbsp; Gene biotype &nbsp; &nbsp; | \n"
+        mdtext += "| :-: | :-: | :-: | :-: | :-: | :-: |\n"
+        i = 0
+        for tr_id, ol_c in sorted(t2hc_dic.items(), key=lambda item: item[1], reverse=True):
+            i += 1
+            if i > target_top:
+                break
+            tr_bt = t2i_dic[tr_id][0]
+            gene_id = t2i_dic[tr_id][1]
+            gene_name = t2i_dic[tr_id][2]
+            gene_bt = t2i_dic[tr_id][3]
+            mdtext += "| %i | %s | %s |  %s | %s | %s |\n" %(ol_c, tr_id, tr_bt, gene_id, gene_name, gene_bt)
+        mdtext += "| ... | &nbsp; | &nbsp; | &nbsp; | &nbsp; | &nbsp; |\n"
+        mdtext += "\n&nbsp;\n&nbsp;\n"
+
+
+    print("Generate HTML report ... ")
+
+    # Convert mdtext to html.
+    md2html = markdown(mdtext, extensions=['attr_list', 'tables'])
+
+    #OUTMD = open(md_out,"w")
+    #OUTMD.write("%s\n" %(mdtext))
+    #OUTMD.close()
+
+    OUTHTML = open(html_out,"w")
+    OUTHTML.write("%s\n" %(md2html))
+    OUTHTML.close()
 
 
 ################################################################################

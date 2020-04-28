@@ -232,7 +232,7 @@ G2T context set comparison report .html:
 test_out/report.g2t.html
 
 ```
-Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). If --report is set, an **HTML report** is output as well, providing comparative statistics for the generated transcript context and genomic context sequences. These currently include: length statistics, sequence complexity distribution, 2-5 mer distributions, target gene biotype statistics, and site overlap statistics. Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
+Notice the naming conventions of the output files (cp : center-positioned site, ext : sites extended by --seq-ext). If --report is set, an **HTML report** is output as well, providing comparative statistics for the generated transcript context and genomic context sequences. These currently include: length statistics, sequence complexity distribution, 2-5 mer distributions, target gene biotype statistics, and site overlap statistics. Note that the HTML report only takes into account the centered and extended sequences (.cp.ext.fa). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
 
 
 compare sites containing genomic context with sites containing transcript context
@@ -246,6 +246,7 @@ clipcontext t2g -h
 usage: clipcontext t2g [-h] --in str --out str --gtf str --gen str
                        [--thr float] [--rev-filter] [--min-len int]
                        [--max-len int] [--seq-ext int] [--gen-uniq-ids]
+                       [--report]
 
 optional arguments:
   -h, --help      show this help message and exit
@@ -261,6 +262,8 @@ optional arguments:
                   sequence extraction (default: 30)
   --gen-uniq-ids  Generate unique column 4 IDs for --in BED file entries
                   (default: False)
+  --report        Output an .html report with statistics and plots comparing
+                  transcript and genomic sequences (default: False)
 
 required arguments:
   --in str        Transcript regions BED file (6-column format) (transcript
@@ -271,10 +274,10 @@ required arguments:
 
 ```
 
-A test run (still inside the test/ subfolder) can be evoked by:
+A test run (still inside the test/ subfolder) that also produces an HTML report can be evoked by:
 
 ```
-clipcontext t2g --in test_tr2gen.bed --gtf test_tr2gen.gtf --out test_out_t2g --gen hg38.2bit
+clipcontext t2g --in test_tr2gen.bed --gtf test_tr2gen.gtf --out test_out_t2g --gen hg38.2bit --report
 
 ```
 
@@ -319,7 +322,15 @@ test_out_t2g/genomic_sites.cp.ext.bed
 Genomic matches extended .fa:
 test_out_t2g/genomic_sites.cp.ext.fa
 
+T2G CONTEXT SET COMPARISON HTML REPORT
+======================================
+T2G context set comparison report .html:
+test_out_t2g/report.t2g.html
+
 ```
+
+The **HTML report** provides the same comparative statistics for the extracted genomic and transcript sequences (.cp.ext.fa) as the report of clipcontext g2t (see details above).
+
 
 ### Additional modes (LST, INT, EXB, EIR)
 

@@ -218,6 +218,11 @@ def setup_argument_parser():
                    default = False,
                    action = "store_true",
                    help = "Generate unique column 4 IDs for --in BED file entries (default: False)")
+    p_t2g.add_argument("--report",
+                   dest="report",
+                   default = False,
+                   action = "store_true",
+                   help = "Output an .html report with statistics and plots comparing transcript and genomic sequences (default: False)")
 
     # Most prominent transcript list extraction mode.
     p_lst = subparsers.add_parser('lst',
@@ -802,21 +807,7 @@ def main_g2t(args):
 
 
     """
-    Generate HTML report.
-
-
-hit_tr_stats_out
-
-tr_id	chr	gen_s	gen_e	pol	gene_id	gene_name	gene_biotype	tr_len	comp_hits	all_hits	uniq_comp_hits	uniq_all_hits
-ENST00000327044	chr1	944202	959256	-	ENSG00000188976	NOC2L	protein_coding	2757	2	3	2	3
-ENST00000379370	chr1	1020119	1056116	+	ENSG00000188157	AGRN	protein_coding	7326	11	12	11	12
-ENST00000263741	chr1	1216930	1232031	-	ENSG00000078808	SDF4	protein_coding	2079	1	1	1	1
-ENST00000378891	chr1	1335275	1349112	-	ENSG00000107404	DVL1	protein_coding	2926	3	3	3	3
-
-    gen_report_fa = gen_cp_ext_fa
-    gen_report_bed = gen_cp_ext_bed
-    tr_report_bed = tr_uniq_cp_ext_bed
-    tr_report_fa = tr_uniq_cp_ext_fa
+    Generate G2T HTML report.
 
     """
     if args.report:
@@ -960,6 +951,9 @@ def main_t2g(args):
     tr_cp_ext_fa = args.out_folder + "/" + "transcript_sites.cp.ext.fa"
     out_exon_regions_genome_bed = args.out_folder + "/" + "exon_regions_genome.bed"
     out_exon_regions_transcript_bed = args.out_folder + "/" + "exon_regions_transcript.bed"
+    # html report file.
+    html_report_out = args.out_folder + "/" + "report.t2g.html"
+
     # Temp files.
     tmp_bed1 = args.out_folder + "/" + "transcript_sites.filtered.tmp.bed"
     tmp_bed2 = args.out_folder + "/" + "genomic_sites.cp.ext.zerosc.tmp.bed"
@@ -1097,6 +1091,51 @@ def main_t2g(args):
                              split=True,
                              split_size=60)
 
+    """
+    Generate T2G HTML report.
+
+    """
+    gen_report_fa = gen_cp_ext_fa
+    tr_report_bed = tr_cp_ext_bed
+    tr_report_fa = tr_cp_ext_fa
+
+    if args.report:
+        # All gene biotype counts.
+        all_gbtc_dic = {}
+        # Target region to info.
+        t2i_dic = {}
+        # Calculate additional stats for report.
+        print("Collect data for HTML report ... ")
+        # Get transcript ID -> hit count dictionary.
+        t2hc_dic = cliplib.bed_get_chromosome_ids(tr_report_bed)
+        # Target region gene biotype counts.
+        target_gbtc_dic = cliplib.gtf_get_gene_biotypes_from_transcript_ids(
+                                    t2hc_dic, args.in_gtf,
+                                    all_gbtc_dic=all_gbtc_dic)
+        # Get transcript infos.
+        t2i_dic = cliplib.gtf_get_transcript_infos(t2hc_dic, args.in_gtf)
+        # Read in transcript sites sequences.
+        tr_seqs_dic = cliplib.read_fasta_into_dic(tr_report_fa)
+        # Read in genomic sites sequences.
+        gen_seqs_dic = cliplib.read_fasta_into_dic(gen_report_fa)
+
+        # Get library and logo path.
+        cliplib_path = os.path.dirname(cliplib.__file__)
+        cc_logo = cliplib_path + "/content/logo.png"
+
+        # Generate report.
+        cliplib.cc_t2g_generate_html_report(tr_seqs_dic, gen_seqs_dic,
+                                            args.out_folder, cc_logo,
+                                            html_report_out=html_report_out,
+                                            target_gbtc_dic=target_gbtc_dic,
+                                            all_gbtc_dic=all_gbtc_dic,
+                                            t2hc_dic=t2hc_dic,
+                                            t2i_dic=t2i_dic,
+                                            kmer_top=10,
+                                            target_top=20,
+                                            rna=True,
+                                            uc_entropy=True)
+
     # Take out the trash.
     clean_up = True
     if clean_up:
@@ -1130,6 +1169,14 @@ def main_t2g(args):
     print("Genomic matches center positions .bed:\n%s" %(gen_cp_bed))
     print("Genomic matches extended .bed:\n%s" %(gen_cp_ext_bed))
     print("Genomic matches extended .fa:\n%s\n" %(gen_cp_ext_fa))
+
+    # Report.
+    if args.report:
+        print("T2G CONTEXT SET COMPARISON HTML REPORT")
+        print("======================================")
+        print("T2G context set comparison report .html:\n%s\n" %(html_report_out))
+
+
 
 
 ################################################################################
