@@ -237,7 +237,7 @@ Notice the naming conventions of the output files (cp : center-positioned site, 
 
 #### Output statistics & HTML report
 
-If --report is set, an **HTML report** is output as well, providing comparative statistics for the generated transcript context and genomic context sequences. These currently include: length statistics, sequence complexity distribution, 2-5 mer distributions, target gene biotype statistics, and site overlap statistics. Note that the HTML report only takes into account the centered and extended sequences (.cp.ext.fa). An example HTML report can be viewed [here](https://github.com/BackofenLab/CLIPcontext/blob/master/docs/report.g2t.html). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
+If --report is set, an **HTML report** is output as well, providing comparative statistics for the generated transcript context and genomic context sequences. These currently include: length statistics, sequence complexity distribution, 2-5 mer distributions, target gene biotype statistics, and site overlap statistics. Note that the HTML report only takes into account the centered and extended sequences (.cp.ext.fa). Additional mapping statistics and information for each transcript are stored in the file hit_transcript_stats.out (see below for format).
 
 
 compare sites containing genomic context with sites containing transcript context
