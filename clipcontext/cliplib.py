@@ -1789,7 +1789,7 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
             if not re.search("^[\dMXY]", chr_id):
                 continue
             if chr_id == "MT":
-                chr_id == "M"
+                chr_id = "M"
             chr_id = "chr" + chr_id
 
         # Make start coordinate 0-base (BED standard).
