@@ -1,5 +1,4 @@
-<img src="doc/clipcontext_logo.png" alt="CLIPcontext logo"
-	title="CLIPcontext logo" width="1000" />
+# CLIPcontext
 
 CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
 
@@ -7,7 +6,7 @@ CLIPcontext is a tool suite that offers several modes to map RBP binding regions
 
 In **G2T** mode, CLIPcontext takes genomic RBP binding regions or sites identified by CLIP-seq and maps them to the transcriptome. This way, region sequences are retrieved with both genomic and transcript sequence context. Depending on the location of the binding regions and the set context length, this leads to the extraction of two different sequence contexts:
 
-<img src="doc/gen_tr_context_alt.png" alt="Site with genomic and transcript context"
+<img src="doc/gen_tr_context.png" alt="Site with genomic and transcript context"
 	title="Site with genomic and transcript context" width="700" />
 
 (A) illustrates the usual way to extract CLIP-seq binding region sequences, after mapping of CLIP-seq reads to the genome and peak calling to identify the binding regions. The context sequence is obtained directly from the genome. In contrast, (B) shows the region mapped to the underlying transcript, from which CLIPcontext then takes the sequence to extract the (possibly more authentic) transcript context.
