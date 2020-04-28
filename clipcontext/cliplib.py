@@ -2021,7 +2021,7 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
             if not re.search("^[\dMXY]", chr_id):
                 continue
             if chr_id == "MT":
-                chr_id == "M"
+                chr_id = "M"
             chr_id = "chr" + chr_id
 
         # Make start coordinate 0-base (BED standard).
@@ -3425,6 +3425,9 @@ def cc_g2t_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
     # Check whether logo exists.
     if os.path.exists(cc_logo):
         mdtext = """
+
+<!DOCTYPE html>
+<html>
 <head>
 <title>CLIPcontext - G2T Mode Report</title>
 </head>
@@ -3438,6 +3441,8 @@ def cc_g2t_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
     else:
         mdtext = """
 
+<!DOCTYPE html>
+<html>
 <head>
 <title>CLIPcontext - G2T Mode Report</title>
 </head>
@@ -3621,6 +3626,12 @@ transcript context sites overlapping with the region.
         mdtext += "| ... | &nbsp; | &nbsp; | &nbsp; | &nbsp; | &nbsp; |\n"
         mdtext += "\n&nbsp;\n&nbsp;\n"
 
+    mdtext += """
+
+</body>
+</html>
+
+"""
 
     print("Generate HTML report ... ")
 
@@ -4287,6 +4298,9 @@ def cc_t2g_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
     # Check whether logo exists.
     if os.path.exists(cc_logo):
         mdtext = """
+
+<!DOCTYPE html>
+<html>
 <head>
 <title>CLIPcontext - T2G Mode Report</title>
 </head>
@@ -4300,6 +4314,8 @@ def cc_t2g_generate_html_report(t_seqs_dic, g_seqs_dic, out_folder,
     else:
         mdtext = """
 
+<!DOCTYPE html>
+<html>
 <head>
 <title>CLIPcontext - T2G Mode Report</title>
 </head>
@@ -4483,6 +4499,12 @@ transcript context sites overlapping with the region.
         mdtext += "| ... | &nbsp; | &nbsp; | &nbsp; | &nbsp; | &nbsp; |\n"
         mdtext += "\n&nbsp;\n&nbsp;\n"
 
+    mdtext += """
+
+</body>
+</html>
+
+"""
 
     print("Generate HTML report ... ")
 
