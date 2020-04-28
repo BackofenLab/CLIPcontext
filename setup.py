@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name='clipcontext',
-    version='0.4',
+    version='0.5',
     description='Extract CLIP-seq binding regions with both genomic and transcript context',
     long_description=open('README.md').read(),
     author='Michael Uhl',
