@@ -1545,12 +1545,6 @@ def read_fasta_into_dic(fasta_file,
                     assert not re.search("[a-z]", seq), "lowercase characters detected in sequence \"%i\" (reject_lc=True)" %(seq_id)
                 if convert_to_uc:
                     seq = seq.upper()
-                # If sequences with N nucleotides should be skipped.
-                if skip_n_seqs:
-                    if "n" in m.group(1) or "N" in m.group(1):
-                        print ("WARNING: \"%s\" contains N nucleotides. Discarding sequence ... " % (seq_id))
-                        del seqs_dic[seq_id]
-                        continue
                 # Convert to RNA, concatenate sequence.
                 if read_dna:
                     seqs_dic[seq_id] += m.group(1).replace("U","T").replace("u","t")
@@ -1558,6 +1552,17 @@ def read_fasta_into_dic(fasta_file,
                     seqs_dic[seq_id] += m.group(1).replace("T","U").replace("t","u")
     f.close()
     assert seqs_dic, "no sequences read in (input FASTA file \"%s\" empty or mal-formatted?)" %(fasta_file)
+    # If sequences with N nucleotides should be skipped.
+    if skip_n_seqs:
+        del_ids = []
+        for seq_id in seqs_dic:
+            seq = seqs_dic[seq_id]
+            if re.search("N", seq, re.I):
+                print ("WARNING: sequence with seq_id \"%s\" in file \"%s\" contains N nucleotides. Discarding sequence ... " % (seq_id, fasta_file))
+                del_ids.append(seq_id)
+        for seq_id in del_ids:
+            del seqs_dic[seq_id]
+        assert seqs_dic, "no sequences remaining after deleting N containing sequences (input FASTA file \"%s\")" %(fasta_file)
     return seqs_dic
 
 
