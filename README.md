@@ -38,6 +38,10 @@ In **EXB** mode, CLIPcontext extracts binding regions near exon borders from a s
 
 In **EIR** mode, CLIPcontext creates exon + intron regions BED files for a given list of transcript IDs. Exon + intron regions are extracted for each input transcript ID.
 
+### MTF
+
+In **MTF** mode, CLIPcontext searches for a motif or regular expression inside the extracted transcript and genomic context sequences (output folder of clipcontext g2t or clipcontext t2g as --in input), and reports counts and frequencies in the two sets.
+
 
 ## Installation
 
@@ -93,17 +97,12 @@ An overview of the modes offered by CLIPcontext can be obtained by:
 
 ```
 clipcontext -h
-usage: clipcontext [-h] {g2t,t2g,lst,int,exb,eir} ...
+usage: clipcontext [-h] [-v] {g2t,t2g,lst,int,exb,eir,mtf} ...
 
-CLIPcontext tool suite for mapping RBP binding regions to transcriptome or
-genome. Several modes are available: mapping from genome to transcriptome
-(g2t), transcriptome to genome (t2g), as well as additional modes for
-extracting sites near exon borders (exb), a list of most prominent transcripts
-(lst), intron-overlapping sites (int), or intron + exon regions for a given
-set of transcripts (eir).
+Tool suite for mapping RBP binding regions to transcriptome or genome.
 
 positional arguments:
-  {g2t,t2g,lst,int,exb,eir}
+  {g2t,t2g,lst,int,exb,eir,mtf}
                         Program modes
     g2t                 Map genomic sites to transcript sites
     t2g                 Map transcript sites to genomic sites
@@ -111,9 +110,11 @@ positional arguments:
     int                 Get sites overlapping with introns
     exb                 Get sites near exon borders
     eir                 Get exon and intron regions
+    mtf                 Search for motif in g2t or t2g sets
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
 
 ```
 
@@ -337,7 +338,7 @@ test_out_t2g/report.t2g.html
 The **HTML report** provides the same comparative statistics for the extracted genomic and transcript sequences (.cp.ext.fa) as the report of clipcontext g2t (see details above).
 
 
-### Additional modes (LST, INT, EXB, EIR)
+### Additional modes (LST, INT, EXB, EIR, MTF)
 
 Executing the additional modes should be self-explanatory. Here are a few example runs (again inside the test/ subfolder) for the individual modes:
 
@@ -353,14 +354,14 @@ clipcontext int --in g2t_test_in.bed --tr g2t_test_in.tr_list --gtf g2t_test_in.
 
 ```
 
-This command returns input sites near exon borders (distance to borders is controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
+This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a list of transcript IDs (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
 
 ```
 clipcontext exb --gtf g2t_test_in.gtf --tr g2t_test_in.tr_list --in g2t_test_in.bed --out sites_near_exon_borders.bed
 
 ```
 
-This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a list of transcript IDs (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
+This command returns input sites near exon borders (distance to borders is controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
 
 ```
 clipcontext eir --tr g2t_test_in.tr_list --gtf g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
@@ -368,6 +369,12 @@ clipcontext eir --tr g2t_test_in.tr_list --gtf g2t_test_in.gtf --exon-out extrac
 ```
 
 This commands extracts exon + intron regions in BED format for a given set of transcripts (--tr).
+
+```
+clipcontext mtf --in test_out --motif '[AC]GCGC'
+
+```
+This command searches for the motif or regular expression '[AC]GCGC' inside the extracted transcript and genomic context sequences (output of clipcontext g2t), and reports counts and frequencies in the two sets.
 
 
 ### Dataset formats
