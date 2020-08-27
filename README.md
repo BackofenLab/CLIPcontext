@@ -211,11 +211,11 @@ test_out/hit_transcript_stats.out
 MERGED + EXTENDED TRANSCRIPT SITES (UNIQUE MATCHES ONLY)
 ========================================================
 Unique transcript matches center positions .bed:
-test_out/transcript_sites.unique_hits.cp.bed
+test_out/transcript_sites.cp.bed
 Unique transcript matches center positions extended .bed:
-test_out/transcript_sites.unique_hits.cp.ext.bed
+test_out/transcript_sites.cp.ext.bed
 Unique transcript matches center positions extended .fa:
-test_out/transcript_sites.unique_hits.cp.ext.fa
+test_out/transcript_sites.cp.ext.fa
 
 GENOMIC SITES (CORRESPONDING TO MERGED + EXTENDED TRANSCRIPT SITES)
 ===================================================================
