@@ -61,7 +61,7 @@ def dir_get_files(file_dir,
 
     >>> test_dir = "test_data"
     >>> dir_get_files(test_dir, file_ending="profile")
-    ['test2.profile', 'test.profile']
+    ['test.profile', 'test2.profile']
 
     """
 
@@ -1786,16 +1786,11 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
             continue
 
         # Restrict to standard chromosomes.
-        if re.search("^chr", chr_id):
-            if not re.search("^chr[\dMXY]", chr_id):
-                continue
+        new_chr_id = check_convert_chr_id(chr_id)
+        if not new_chr_id:
+            continue
         else:
-            # Convert to "chr" IDs.
-            if not re.search("^[\dMXY]", chr_id):
-                continue
-            if chr_id == "MT":
-                chr_id = "M"
-            chr_id = "chr" + chr_id
+            chr_id = new_chr_id
 
         # Make start coordinate 0-base (BED standard).
         feat_s = feat_s - 1
@@ -2018,16 +2013,11 @@ def convert_genome_positions_to_transcriptome(in_bed, out_folder,
             continue
 
         # Restrict to standard chromosomes.
-        if re.search("^chr", chr_id):
-            if not re.search("^chr[\dMXY]", chr_id):
-                continue
+        new_chr_id = check_convert_chr_id(chr_id)
+        if not new_chr_id:
+            continue
         else:
-            # Convert to "chr" IDs.
-            if not re.search("^[\dMXY]", chr_id):
-                continue
-            if chr_id == "MT":
-                chr_id = "M"
-            chr_id = "chr" + chr_id
+            chr_id = new_chr_id
 
         # Make start coordinate 0-base (BED standard).
         feat_s = feat_s - 1
@@ -3043,13 +3033,11 @@ def gtf_extract_most_prominent_transcripts(in_gtf, out_file,
             continue
 
         # Restrict to standard chromosomes.
-        if re.search("^chr", chr_id):
-            if not re.search("^chr[\dMXY]", chr_id):
-                continue
+        new_chr_id = check_convert_chr_id(chr_id)
+        if not new_chr_id:
+            continue
         else:
-            # Convert to "chr" IDs.
-            if not re.search("^[\dMXY]", chr_id):
-                continue
+            chr_id = new_chr_id
 
         # Extract gene ID.
         m = re.search('gene_id "(.+?)"', infos)
@@ -4523,6 +4511,52 @@ transcript context sites overlapping with the region.
     OUTHTML = open(html_out,"w")
     OUTHTML.write("%s\n" %(md2html))
     OUTHTML.close()
+
+
+################################################################################
+
+def check_convert_chr_id(chr_id):
+    """
+    Check and convert chromosome IDs to format:
+    chr1, chr2, chrX, ...
+    If chromosome IDs like 1,2,X, .. given, convert to chr1, chr2, chrX ..
+    Return False if given chr_id not standard and not convertable.
+
+    Filter out scaffold IDs like:
+    GL000009.2, KI270442.1, chr14_GL000009v2_random
+    chrUn_KI270442v1 ...
+
+    >>> chr_id = "chrX"
+    >>> check_convert_chr_id(chr_id)
+    'chrX'
+    >>> chr_id = "4"
+    >>> check_convert_chr_id(chr_id)
+    'chr4'
+    >>> chr_id = "MT"
+    >>> check_convert_chr_id(chr_id)
+    'chrM'
+    >>> chr_id = "GL000009.2"
+    >>> check_convert_chr_id(chr_id)
+    False
+    >>> chr_id = "chrUn_KI270442v1"
+    >>> check_convert_chr_id(chr_id)
+    False
+
+    """
+    assert chr_id, "given chr_id empty"
+
+    if re.search("^chr", chr_id):
+        if not re.search("^chr[\dMXY]+$", chr_id):
+            chr_id = False
+    else:
+        # Convert to "chr" IDs.
+        if chr_id == "MT":
+            chr_id = "M"
+        if re.search("^[\dMXY]+$", chr_id):
+            chr_id = "chr" + chr_id
+        else:
+            chr_id = False
+    return chr_id
 
 
 ################################################################################

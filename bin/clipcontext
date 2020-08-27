@@ -5,9 +5,10 @@ import argparse
 import shutil
 import gzip
 import sys
+import re
 import os
 
-__version__ = "0.6"
+__version__ = "0.7"
 
 """
 
@@ -417,6 +418,26 @@ def setup_argument_parser():
                    required = True,
                    help = "Intron regions BED output file")
 
+    # Motif search mode.
+    p_mtf = subparsers.add_parser('mtf',
+                                  help='Search for motif in g2t or t2g sets')
+    p_mtf.set_defaults(which='mtf')
+    # Add required arguments group.
+    p_mtfm = p_mtf.add_argument_group("required arguments")
+    # Required arguments for eir.
+    p_mtfm.add_argument("--in",
+                   dest="in_folder",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Output folder of clipcontext g2t or clipcontext t2g with genomic and transcript context sequence sets in which to look for given --motif")
+    p_mtfm.add_argument("--motif",
+                   dest="in_regex",
+                   type=str,
+                   metavar='str',
+                   required = True,
+                   help = "Motif or regular expression (RNA) to search for in --in folder context sequences (e.g. --motif '[AC]UGCUAA')")
+
     return p
 
 
@@ -440,9 +461,9 @@ def main_g2t(args):
     gen_cp_bed = args.out_folder + "/" + "genomic_sites.cp.bed"
     gen_cp_ext_bed = args.out_folder + "/" + "genomic_sites.cp.ext.bed"
     gen_cp_ext_fa = args.out_folder + "/" + "genomic_sites.cp.ext.fa"
-    tr_uniq_cp_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.bed"
-    tr_uniq_cp_ext_bed = args.out_folder + "/" + "transcript_sites.unique_hits.cp.ext.bed"
-    tr_uniq_cp_ext_fa = args.out_folder + "/" + "transcript_sites.unique_hits.cp.ext.fa"
+    tr_uniq_cp_bed = args.out_folder + "/" + "transcript_sites.cp.bed"
+    tr_uniq_cp_ext_bed = args.out_folder + "/" + "transcript_sites.cp.ext.bed"
+    tr_uniq_cp_ext_fa = args.out_folder + "/" + "transcript_sites.cp.ext.fa"
     # Full length files.
     tr_fl_comp_bed = args.out_folder + "/" + "transcript_hits_complete.bed"
     tr_fl_incomp_bed = args.out_folder + "/" + "transcript_hits_incomplete.bed"
@@ -1062,8 +1083,9 @@ def main_t2g(args):
                                  seq_len_dic=chr_len_dic,
                                  ext_lr=args.us_ds_ext,
                                  zero_scores=True)
-    # Extract genomic sequences from .2bit.
-    cliplib.bed_extract_sequences_from_2bit(tmp_bed2, gen_cp_ext_fa, args.in_2bit)
+    # Extract genomic sequences from .2bit, convert to RNA.
+    cliplib.bed_extract_sequences_from_2bit(tmp_bed2, gen_cp_ext_fa, args.in_2bit,
+                                            convert_to_rna=True)
 
     # Extend transcript center sites.
     cliplib.bed_process_bed_file(tr_cp_bed, tr_cp_ext_bed,
@@ -1434,6 +1456,76 @@ def main_exb(args):
 
 ################################################################################
 
+def main_mtf(args):
+    """
+    Look for provided motif in transcript and genomic sequences,
+    and output findings.
+
+    """
+
+    print("Running for you in MTF mode ... ")
+
+    assert os.path.exists(args.in_folder), "--in folder \"%s\" does not exist" %(args.in_folder)
+
+    tr_fa = args.in_folder + "/" + "transcript_sites.cp.ext.fa"
+    gen_fa = args.in_folder + "/" + "genomic_sites.cp.ext.fa"
+
+    assert os.path.exists(tr_fa), "--in folder does not contain transcript sites FASTA \"%s\". Please provide genuine clipcontext g2t or clipcontext t2g folder" %(tr_fa)
+    assert os.path.exists(gen_fa), "--in folder does not contain genomic sites FASTA \"%s\". Please provide genuine clipcontext g2t or clipcontext t2g folder" %(gen_fa)
+
+    tr_seqs_dic = cliplib.read_fasta_into_dic(tr_fa)
+    assert tr_seqs_dic, "No sequences read in from \"%s\" (tr_seqs_dic empty)" %(tr_fa)
+    gen_seqs_dic = cliplib.read_fasta_into_dic(gen_fa)
+    assert gen_seqs_dic, "No sequences read in from \"%s\" (gen_seqs_dic empty)" %(gen_fa)
+
+    c_tr_hits = 0
+    c_tr_seqs_len = 0
+    tr_hits_dic = {}
+    for seq_id in tr_seqs_dic:
+        seq = tr_seqs_dic[seq_id]
+        c_tr_seqs_len += len(seq)
+        for hit in re.findall(args.in_regex, seq):
+            c_tr_hits += 1
+            if hit in tr_hits_dic:
+                tr_hits_dic[hit] += 1
+            else:
+                tr_hits_dic[hit] = 1
+
+    c_gen_hits = 0
+    c_gen_seqs_len = 0
+    gen_hits_dic = {}
+    for seq_id in gen_seqs_dic:
+        seq = gen_seqs_dic[seq_id]
+        c_gen_seqs_len += len(seq)
+        for hit in re.findall(args.in_regex, seq):
+            c_gen_hits += 1
+            if hit in gen_hits_dic:
+                gen_hits_dic[hit] += 1
+            else:
+                gen_hits_dic[hit] = 1
+
+    print("--motif:  %s" %(args.in_regex))
+
+    print("Total transcript context length: %i" %(c_tr_seqs_len))
+    if c_tr_hits:
+        tr_ratio = c_tr_hits / c_tr_seqs_len
+        print("# transcript context hits:       %i" %(c_tr_hits))
+        print("Ratio (# hits / 1000 nt):        %.4f" %(tr_ratio))
+    else:
+        print("No motif hits on transcript context sequences")
+
+    print("Total genomic context length:    %i" %(c_gen_seqs_len))
+    if c_gen_hits:
+        gen_ratio = c_gen_hits / c_gen_seqs_len
+        print("# genomic context hits:          %i" %(c_gen_hits))
+        print("Ratio (# hits / 1000 nt):        %.4f" %(gen_ratio))
+    else:
+        print("No motif hits on genomic context sequences")
+    print("")
+
+
+################################################################################
+
 if __name__ == '__main__':
     # Setup argparse.
     parser = setup_argument_parser()
@@ -1457,16 +1549,17 @@ if __name__ == '__main__':
         assert "linux" in sys.platform, "please use Linux"
     else:
         if not "linux" in sys.platform:
-            print("WARNING: this tool was tested under Linux. Please use Linux or use it at your own risk .. ")
+            print("WARNING: this tool was tested on a Linux system. Please use Linux or use it at your own risk .. ")
     # Check tool availability.
     assert cliplib.is_tool("bedtools"), "bedtools not in PATH"
     assert cliplib.is_tool("twoBitToFa"), "twoBitToFa not in PATH"
     assert cliplib.is_tool("twoBitInfo"), "twoBitInfo not in PATH"
     # Check file inputs.
-    assert os.path.exists(args.in_gtf), "--gtf GTF file \"%s\" not found" %(args.in_gtf)
-    if args.which != 'lst' and args.which != 't2g':
+    if args.which != 'mtf':
+        assert os.path.exists(args.in_gtf), "--gtf GTF file \"%s\" not found" %(args.in_gtf)
+    if args.which != 'lst' and args.which != 't2g' and args.which != 'mtf':
         assert os.path.exists(args.in_tr_list), "input transcript ID list file \"%s\" not found" %(args.in_tr_list)
-    if args.which != 'eir' and args.which != 'lst':
+    if args.which != 'eir' and args.which != 'lst' and args.which != 'mtf':
         assert os.path.exists(args.in_bed), "--in BED file \"%s\" not found" %(args.in_bed)
         # Check .bed for content.
         c_in_sites = cliplib.count_file_rows(args.in_bed)
@@ -1505,5 +1598,8 @@ if __name__ == '__main__':
         main_eir(args)
     elif args.which == 'int':
         main_int(args)
+    elif args.which == 'mtf':
+        main_mtf(args)
+
 
 ################################################################################
