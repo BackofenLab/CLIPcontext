@@ -46,7 +46,7 @@ To install CLIPcontext, simply clone the repository and use the Python script wi
 ```
 git clone https://github.com/BackofenLab/CLIPcontext.git
 cd CLIPcontext
-python setup.py install
+python -m pip install . --ignore-installed --no-deps -vv
 ```
 
 CLIPcontext can also be installed via [conda](https://anaconda.org/bioconda/clipcontext). This is the most convenient way to install CLIPcontext, since conda takes care of all the dependencies. Note however that the conda version might not always be the latest release.
@@ -211,11 +211,11 @@ test_out/hit_transcript_stats.out
 MERGED + EXTENDED TRANSCRIPT SITES (UNIQUE MATCHES ONLY)
 ========================================================
 Unique transcript matches center positions .bed:
-test_out/transcript_sites.unique_hits.cp.bed
+test_out/transcript_sites.cp.bed
 Unique transcript matches center positions extended .bed:
-test_out/transcript_sites.unique_hits.cp.ext.bed
+test_out/transcript_sites.cp.ext.bed
 Unique transcript matches center positions extended .fa:
-test_out/transcript_sites.unique_hits.cp.ext.fa
+test_out/transcript_sites.cp.ext.fa
 
 GENOMIC SITES (CORRESPONDING TO MERGED + EXTENDED TRANSCRIPT SITES)
 ===================================================================
