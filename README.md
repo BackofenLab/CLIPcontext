@@ -348,22 +348,19 @@ clipcontext lst --gtf Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_
 
 This command extracts a list of prominent transcript IDs from the given --gtf file. Setting --strict leads to a more strict selection, accepting only transcripts with TSL of 1-5. Setting --add-infos adds additional information to the output file, which then becomes a tabular file storing for each transcript ID: gene ID, gene name, gene biotype, transcript ID, transcript biotype, transcript length, number of transcript exons, transcript support level. See clipcontext lst -h for available arguments.
 
-
 ```
 clipcontext int --in g2t_test_in.bed --tr g2t_test_in.tr_list --gtf g2t_test_in.gtf --out sites_on_introns.bed
 
 ```
 
-This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a list of transcript IDs (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
-
+This command returns input sites near exon borders (distance to borders is controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
 
 ```
 clipcontext exb --gtf g2t_test_in.gtf --tr g2t_test_in.tr_list --in g2t_test_in.bed --out sites_near_exon_borders.bed
 
 ```
 
-This command returns input sites near exon borders (distance to borders is controlled by --max-dist). Sites are returned in BED format (set output file name with --out). See clipcontext exb -h for available arguments.
-
+This command gets the input sites overlapping with intron regions. Intron regions to consider are defined by a list of transcript IDs (--tr) and a GTF file (--gtf). See clipcontext int -h for available arguments.
 
 ```
 clipcontext eir --tr g2t_test_in.tr_list --gtf g2t_test_in.gtf --exon-out extracted_exon_regions.bed --intron-out extracted_intron_regions.bed
