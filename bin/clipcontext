@@ -25,13 +25,7 @@ def setup_argument_parser():
     """Setup argparse parser."""
     # Tool description text.
     help_description = """
-    CLIPcontext tool suite for mapping RBP binding regions to
-    transcriptome or genome. Several modes are available:
-    mapping from genome to transcriptome (g2t), transcriptome to genome (t2g),
-    as well as additional modes for extracting sites near exon borders (exb),
-    a list of most prominent transcripts (lst), intron-overlapping sites (int),
-    or intron + exon regions for a given set of transcripts (eir).
-
+    Tool suite for mapping RBP binding regions to transcriptome or genome.
     """
 
     # Define argument parser.
