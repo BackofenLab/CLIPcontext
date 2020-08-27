@@ -46,7 +46,7 @@ To install CLIPcontext, simply clone the repository and use the Python script wi
 ```
 git clone https://github.com/BackofenLab/CLIPcontext.git
 cd CLIPcontext
-python setup.py install
+python -m pip install . --ignore-installed --no-deps -vv
 ```
 
 CLIPcontext can also be installed via [conda](https://anaconda.org/bioconda/clipcontext). This is the most convenient way to install CLIPcontext, since conda takes care of all the dependencies. Note however that the conda version might not always be the latest release.
