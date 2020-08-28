@@ -56,7 +56,7 @@ def is_tool(name):
 def dir_get_files(file_dir,
                   file_ending=False):
     """
-    Return list of files from given directory file_dir.
+    Return list of files from given file_dir.
     E.g. file_ending="bed" to filter for .bed files.
 
     >>> test_dir = "test_data"
@@ -76,9 +76,9 @@ def dir_get_files(file_dir,
             if re.search(".+\.%s" %(file_ending), df):
                 new_files.append(df)
         assert new_files, "no files left after filtering by file ending \"%s\"" %(file_ending)
-        return new_files
+        return sorted(new_files)
     else:
-        return dir_files
+        return sorted(dir_files)
 
 
 ################################################################################
@@ -553,6 +553,34 @@ def get_center_position(start, end):
 
 ################################################################################
 
+def bed_get_score_to_count_dic(in_bed):
+    """
+    Given an .bed file in_bed, store scores and count how many times each
+    score appears. Return dictionary with score -> count mapping.
+
+    >>> in_bed = "test_data/test1.bed"
+    >>> bed_get_score_to_count_dic(in_bed)
+    {'1': 2, '0': 2, '2': 1, '3': 2}
+
+    """
+    assert os.path.isfile(in_bed), "cannot open in_bed \"%s\"" % (in_bed)
+    # Read in IDs.
+    sc2c_dic = {}
+    with open(in_bed) as f:
+        for line in f:
+            row = line.strip()
+            cols = line.strip().split("\t")
+            site_sc = cols[4]
+            if site_sc in sc2c_dic:
+                sc2c_dic[site_sc] += 1
+            else:
+                sc2c_dic[site_sc] = 1
+    f.closed
+    return sc2c_dic
+
+
+################################################################################
+
 def count_file_rows(in_file):
     """
     Count number of file rows for given input file.
@@ -565,6 +593,7 @@ def count_file_rows(in_file):
     0
 
     """
+    assert os.path.exists(in_file), "in_file \"%s\" not found" %(in_file)
     check_cmd = "cat " + in_file + " | wc -l"
     output = subprocess.getoutput(check_cmd)
     row_count = int(output.strip())
@@ -1366,9 +1395,9 @@ def bed_merge_file_select_top_ids(in_merged_bed, id2sc_dic,
             cols = line.strip().split("\t")
             ids = cols[3].split(";")
             best_id = "-"
-            best_sc = 0
+            best_sc = -6666666
             if rev_filter:
-                best_sc = 1000000
+                best_sc = 6666666
             for site_id in ids:
                 assert site_id in id2sc_dic, "site ID \"%s\" not found in given site ID to score dictionary" % (site_id)
                 site_sc = id2sc_dic[site_id]

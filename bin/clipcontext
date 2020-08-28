@@ -484,6 +484,20 @@ def main_g2t(args):
     # Get chromosome lengths.
     chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, chr_lengths_file)
 
+    # If merging should be done, demand column 5 scores for --in BED.
+    if args.merge_mode == 1 or args.merge_mode == 2:
+        print("Merging --in sites activated. Check BED column 5 scores ... ")
+        sc2c_dic = cliplib.bed_get_score_to_count_dic(args.in_bed)
+
+        # Warning in case no col5 scores are present (e.g. each row with score 0).
+        if len(sc2c_dic) == 1:
+            print("WARNING: --in BED regions all contain the same column 5 score!")
+            print("         To select best sites in case of overlaps, please add")
+            print("            distinct BED column 5 scores to --in BED file.")
+            print("                  Disabling best site selection by")
+            print("                     setting --merge-mode to 3 ... ")
+            args.merge_mode = 3
+
     # Remove transcript IDs for which sequence extraction failed.
     remove_ids_dic = {}
     for tr_id in tr_ids_dic:
@@ -1531,11 +1545,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Some banner.
+    print("")
     print("   _______   _______                __          __   ")
     print("  / ___/ /  /  _/ _ \_______  ___  / /______ __/ /_  ")
     print(" / /__/ /___/ // ___/ __/ _ \/ _ \/ __/ -_) \ / __/  ")
     print(" \___/____/___/_/   \__/\___/_//_/\__/\__/_\_\\__/   ")
     print("                                                     ")
+    print("")
 
     # Check for Linux.
     linux_fanboy = False
