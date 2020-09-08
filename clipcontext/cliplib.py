@@ -365,6 +365,7 @@ def bed_process_bed_file(in_bed_file, out_bed_file,
 ################################################################################
 
 def bed_read_rows_into_dic(in_bed,
+                           to_list=False,
                            two_ids_dic=False):
     """
     Read in .bed file rows into dictionary.
@@ -390,7 +391,11 @@ def bed_read_rows_into_dic(in_bed,
                         continue
                 else:
                     continue
-            id2row_dic[site_id] = row
+            if to_list:
+                id2row_dic[site_id] = [cols[0], int(cols[1]), int(cols[2]), cols[3], cols[4], cols[5]]
+            else:
+                id2row_dic[site_id] = row
+
     f.closed
     assert id2row_dic, "No IDs read into dictionary (input file \"%s\" empty or malformatted?)" % (in_bed)
     return id2row_dic

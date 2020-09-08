@@ -431,7 +431,17 @@ def setup_argument_parser():
                    metavar='str',
                    required = True,
                    help = "Motif or regular expression (RNA) to search for in --in folder context sequences (e.g. --motif '[AC]UGCUAA')")
-
+    # Optional arguments.
+    p_mtf.add_argument("--stats-out",
+                   dest="stats_out",
+                   type=str,
+                   metavar='str',
+                   help = "Output table to store motif search results in (requires --data-id to be set). If table exists, append results row to table")
+    p_mtf.add_argument("--data-id",
+                   dest="data_id",
+                   type=str,
+                   metavar='str',
+                   help = "Data ID (column 1) for --stats-out output table to store motif search results (requires --stats-out to be set)")
     return p
 
 
@@ -1474,62 +1484,159 @@ def main_mtf(args):
     print("Running for you in MTF mode ... ")
 
     assert os.path.exists(args.in_folder), "--in folder \"%s\" does not exist" %(args.in_folder)
+    if args.stats_out or args.data_id:
+        assert args.stats_out and args.data_id, "--stats-out requires --data-id and the other way around"
 
     tr_fa = args.in_folder + "/" + "transcript_sites.cp.ext.fa"
+    tr_bed = args.in_folder + "/" + "transcript_sites.cp.ext.bed"
     gen_fa = args.in_folder + "/" + "genomic_sites.cp.ext.fa"
+    gen_bed = args.in_folder + "/" + "genomic_sites.cp.ext.bed"
 
     assert os.path.exists(tr_fa), "--in folder does not contain transcript sites FASTA \"%s\". Please provide genuine clipcontext g2t or clipcontext t2g folder" %(tr_fa)
     assert os.path.exists(gen_fa), "--in folder does not contain genomic sites FASTA \"%s\". Please provide genuine clipcontext g2t or clipcontext t2g folder" %(gen_fa)
+    assert os.path.exists(tr_bed), "--in folder does not contain transcript sites BED \"%s\". Please provide genuine clipcontext g2t or clipcontext t2g folder" %(tr_bed)
+    assert os.path.exists(gen_bed), "--in folder does not contain genomic sites BED \"%s\". Please provide genuine clipcontext g2t or clipcontext t2g folder" %(gen_bed)
 
     tr_seqs_dic = cliplib.read_fasta_into_dic(tr_fa)
     assert tr_seqs_dic, "No sequences read in from \"%s\" (tr_seqs_dic empty)" %(tr_fa)
     gen_seqs_dic = cliplib.read_fasta_into_dic(gen_fa)
     assert gen_seqs_dic, "No sequences read in from \"%s\" (gen_seqs_dic empty)" %(gen_fa)
 
+    tr_bed_reg_dic = cliplib.bed_read_rows_into_dic(tr_bed, to_list=True)
+    gen_bed_reg_dic = cliplib.bed_read_rows_into_dic(gen_bed, to_list=True)
+
     c_tr_hits = 0
+    c_tr_uniq_hits = 0 # unique transcript hits.
     c_tr_seqs_len = 0
     tr_hits_dic = {}
+    tr_uniq_hits_dic = {} # unique transcript hits.
+    tr_check_pos_dic = {}
     for seq_id in tr_seqs_dic:
         seq = tr_seqs_dic[seq_id]
         c_tr_seqs_len += len(seq)
-        for hit in re.findall(args.in_regex, seq):
+        tr_id = tr_bed_reg_dic[seq_id][0]
+        tr_s = tr_bed_reg_dic[seq_id][1]
+        tr_e = tr_bed_reg_dic[seq_id][2]
+
+        for match in re.finditer(args.in_regex, seq):
             c_tr_hits += 1
+            hit = match.group()
+            hit_s = match.start()
+            hit_e = match.end()
             if hit in tr_hits_dic:
                 tr_hits_dic[hit] += 1
             else:
                 tr_hits_dic[hit] = 1
+            # Unique transcript hits.
+            hit_tr_s = tr_s + hit_s
+            hit_tr_e = tr_s + hit_e
+
+            check_id = "%s,%i-%i" %(tr_id,hit_tr_s,hit_tr_e)
+            if check_id in tr_check_pos_dic:
+                continue
+            else:
+                c_tr_uniq_hits += 1
+                if hit in tr_uniq_hits_dic:
+                    tr_uniq_hits_dic[hit] += 1
+                else:
+                    tr_uniq_hits_dic[hit] = 1
+                tr_check_pos_dic[check_id] = 1
 
     c_gen_hits = 0
+    c_gen_uniq_hits = 0 # unique genomic hits.
     c_gen_seqs_len = 0
     gen_hits_dic = {}
+    gen_uniq_hits_dic = {} # unique genomic hits.
+    gen_check_pos_dic = {}
     for seq_id in gen_seqs_dic:
         seq = gen_seqs_dic[seq_id]
         c_gen_seqs_len += len(seq)
-        for hit in re.findall(args.in_regex, seq):
+        chr_id = gen_bed_reg_dic[seq_id][0]
+        gen_s = gen_bed_reg_dic[seq_id][1]
+        gen_e = gen_bed_reg_dic[seq_id][2]
+        gen_pol = gen_bed_reg_dic[seq_id][5]
+        for match in re.finditer(args.in_regex, seq):
             c_gen_hits += 1
+            hit = match.group()
+            hit_s = match.start()
+            hit_e = match.end()
             if hit in gen_hits_dic:
                 gen_hits_dic[hit] += 1
             else:
                 gen_hits_dic[hit] = 1
+            # Unique genomic hits.
+            hit_gen_s = gen_s + hit_s
+            hit_gen_e = gen_s + hit_e
+            if gen_pol == "-":
+                hit_gen_s = gen_e - hit_e
+                hit_gen_e = gen_e - hit_s
+            check_id = "%s,%i-%i,%s" %(chr_id,hit_gen_s,hit_gen_e,gen_pol)
+            if check_id in gen_check_pos_dic:
+                continue
+            else:
+                c_gen_uniq_hits += 1
+                if hit in gen_uniq_hits_dic:
+                    gen_uniq_hits_dic[hit] += 1
+                else:
+                    gen_uniq_hits_dic[hit] = 1
+                gen_check_pos_dic[check_id] = 1
+
+    c_tr_sites = len(tr_seqs_dic)
+    c_gen_sites = len(gen_seqs_dic)
 
     print("--motif:  %s" %(args.in_regex))
+    print("# transcript context sites:  %i" %(c_tr_sites))
+    print("# genomic context sites:     %i" %(c_gen_sites))
 
-    print("Total transcript context length: %i" %(c_tr_seqs_len))
+    print("Total transcript context length:   %i" %(c_tr_seqs_len))
+    tr_ratio = "0"
+    tr_uniq_ratio = "0"
+    tr_fl_ratio = 0
     if c_tr_hits:
-        tr_ratio = c_tr_hits / c_tr_seqs_len
-        print("# transcript context hits:       %i" %(c_tr_hits))
-        print("Ratio (# hits / 1000 nt):        %.4f" %(tr_ratio))
+        tr_ratio = "%.7f" %(c_tr_hits / c_tr_seqs_len)
+        tr_uniq_ratio = "%.7f" %(c_tr_uniq_hits / c_tr_seqs_len)
+        tr_fl_ratio = c_tr_uniq_hits / c_tr_seqs_len
+        print("# transcript context hits:         %i" %(c_tr_hits))
+        print("Ratio (# hits / 1000 nt):          %s" %(tr_ratio))
+        print("# unique transcript context hits:  %i" %(c_tr_uniq_hits))
+        print("Ratio (# unique hits / 1000 nt):   %s" %(tr_uniq_ratio))
     else:
         print("No motif hits on transcript context sequences")
 
-    print("Total genomic context length:    %i" %(c_gen_seqs_len))
+    print("Total genomic context length:      %i" %(c_gen_seqs_len))
+    gen_ratio = "0"
+    gen_uniq_ratio = "0"
+    gen_fl_ratio = 0
+    tr_gen_ratio = 0
     if c_gen_hits:
-        gen_ratio = c_gen_hits / c_gen_seqs_len
-        print("# genomic context hits:          %i" %(c_gen_hits))
-        print("Ratio (# hits / 1000 nt):        %.4f" %(gen_ratio))
+        gen_ratio = "%.7f" %(c_gen_hits / c_gen_seqs_len)
+        gen_uniq_ratio = "%.7f" %(c_gen_uniq_hits / c_gen_seqs_len)
+        gen_fl_ratio = c_gen_uniq_hits / c_gen_seqs_len
+        if tr_fl_ratio:
+            tr_gen_ratio = tr_fl_ratio / gen_fl_ratio
+        print("# genomic context hits:            %i" %(c_gen_hits))
+        print("Ratio (# hits / 1000 nt):          %s" %(gen_ratio))
+        print("# unique genomic context hits:     %i" %(c_gen_uniq_hits))
+        print("Ratio (# unique hits / 1000 nt):   %s" %(gen_uniq_ratio))
     else:
         print("No motif hits on genomic context sequences")
     print("")
+
+    # If --stats-out.
+    if args.stats_out:
+        append = False
+        if os.path.exists(args.stats_out):
+            append = True
+            STATOUT = open(args.stats_out, "a")
+        else:
+            STATOUT = open(args.stats_out, "w")
+        # Output.
+        if not append:
+            STATOUT.write("data_id\tmotif\ttr_sites\tgen_sites\tc_tr_hits\ttr_ratio\tc_tr_uniq_hits\ttr_uniq_ratio\tc_gen_hits\tgen_ratio\tc_gen_uniq_hits\tgen_uniq_ratio\ttr_gen_ratio\n")
+        if tr_gen_ratio:
+            STATOUT.write("%s\t%s\t%i\t%i\t%i\t%s\t%i\t%s\t%i\t%s\t%i\t%s\t%.5f\n" %(args.data_id, args.in_regex, c_tr_sites, c_gen_sites, c_tr_hits, tr_ratio, c_tr_uniq_hits, tr_uniq_ratio, c_gen_hits, gen_ratio, c_gen_uniq_hits, gen_uniq_ratio, tr_gen_ratio))
+        else:
+            STATOUT.write("%s\t%s\t%i\t%i\t%i\t%s\t%i\t%s\t%i\t%s\t%i\t%s\t0\n" %(args.data_id, args.in_regex, c_tr_sites, c_gen_sites, c_tr_hits, tr_ratio, c_tr_uniq_hits, tr_uniq_ratio, c_gen_hits, gen_ratio, c_gen_uniq_hits, gen_uniq_ratio))
 
 
 ################################################################################
