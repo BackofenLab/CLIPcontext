@@ -83,6 +83,35 @@ def dir_get_files(file_dir,
 
 ################################################################################
 
+def get_col_count(in_file):
+    """
+    Count number of columns (separated by TAB) in first row and return
+    number.
+
+    >>> in_file = "test_data/test1.bed"
+    >>> get_col_count(in_file)
+    6
+    >>> in_file = "test_data/tr_list.txt"
+    >>> get_col_count(in_file)
+    1
+    >>> in_file = "test_data/empty_file"
+    >>> get_col_count(in_file)
+    0
+
+    """
+
+    col_c = 0
+    with open(in_file) as f:
+        for line in f:
+            cols = line.strip().split("\t")
+            col_c = len(cols)
+            break
+    f.closed
+    return col_c
+
+
+################################################################################
+
 def bed_check_six_col_format(bed_file):
     """
     Check whether given .bed file has 6 columns.
@@ -2709,6 +2738,47 @@ def bed_get_transcript_exon_numbers(in_bed):
     f.close()
     assert tr_exc_dic, "nothing was read in (\"%s\" empty or malformatted?)" %(in_bed)
     return tr_exc_dic
+
+
+################################################################################
+
+def gtf_get_transcript_ids(in_gtf):
+    """
+    Get transcript IDs from in_gtf GTF file.
+
+    >>> in_gtf = "test_data/gene_test_in.gtf"
+    >>> gtf_get_transcript_ids(in_gtf)
+    {'ENST01': 1, 'ENST02': 1}
+
+    """
+    # Transcript IDs dictionary.
+    tr_ids_dic = {}
+    # Open GTF either as .gz or as text file.
+    if re.search(".+\.gz$", in_gtf):
+        f = gzip.open(in_gtf, 'rt')
+    else:
+        f = open(in_gtf, "r")
+    for line in f:
+        # Skip header.
+        if re.search("^#", line):
+            continue
+        cols = line.strip().split("\t")
+        feature = cols[2]
+        infos = cols[8]
+        if not feature == "transcript":
+            continue
+
+        # Extract transcript ID.
+        m = re.search('transcript_id "(.+?)"', infos)
+        assert m, "transcript_id entry missing in GTF file \"%s\", line \"%s\"" %(in_gtf, line)
+        transcript_id = m.group(1)
+
+        # Store transcript ID.
+        tr_ids_dic[transcript_id] = 1
+    f.close()
+    # Check and return to barracks.
+    assert tr_ids_dic, "no transcript IDs read in"
+    return tr_ids_dic
 
 
 ################################################################################
