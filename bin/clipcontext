@@ -3,6 +3,7 @@
 from clipcontext import cliplib
 import argparse
 import shutil
+import uuid
 import gzip
 import sys
 import re
@@ -420,41 +421,38 @@ def setup_argument_parser():
     p_mtfm = p_mtf.add_argument_group("required arguments")
     # Required arguments for eir.
     p_mtfm.add_argument("--in",
-                   dest="in_folder",
+                   dest="in_data",
                    type=str,
                    metavar='str',
                    required = True,
-                   help = "Three different inputs possible: 1) output folder of clipcontext g2t or clipcontext t2g with genomic and transcript context sequence sets in which to look for given --motif. 2) BED file (genomic or transcript regions) in which to look for given --motif. 3) Transcript list file, to search for --motif in the respective transcript sequences. Note that 2)+3) needs --gtf and --gen")
+                   help = "Three different inputs possible: (1) output folder of clipcontext g2t or clipcontext t2g with genomic and transcript context sequence sets in which to look for given --motif. (2) BED file (genomic or transcript regions) in which to look for given --motif. (3) Transcript list file, to search for --motif in the respective transcript sequences. Note that (2)+(3) need --gtf and --gen")
     p_mtfm.add_argument("--motif",
                    dest="in_regex",
                    type=str,
                    metavar='str',
                    required = True,
-                   help = "Motif or regular expression (RNA) to search for in --in folder context sequences (e.g. --motif '[AC]UGCUAA')")
+                   help = "Motif or regular expression (RNA letters!) to search for in --in folder context sequences (e.g. --motif '[AC]UGCUAA')")
     # Optional arguments.
     p_mtf.add_argument("--gtf",
                    dest="in_gtf",
                    type=str,
                    metavar='str',
-                   required = True,
-                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz). Required for --in type 2) or 3)")
+                   help = "Genomic annotations (hg38) GTF file (.gtf or .gtf.gz). Required for --in type (2) or (3)")
     p_mtf.add_argument("--gen",
                    dest="in_2bit",
                    type=str,
                    metavar='str',
-                   required = True,
-                   help = "Genomic sequences (hg38) .2bit file. Required for --in type 2) or 3)")
+                   help = "Genomic sequences (hg38) .2bit file. Required for --in type (2) or (3)")
     p_mtf.add_argument("--out",
                    dest="out_folder",
                    type=str,
                    metavar='str',
-                   required = True,
                    help = "Output results folder, to store motif hit regions in BED files")
     p_mtf.add_argument("--stats-out",
                    dest="stats_out",
                    type=str,
                    metavar='str',
-                   help = "Output table to store motif search results in (for --in type 1) (requires --data-id to be set). If table exists, append results row to table")
+                   help = "Output table to store motif search results in (for --in type (1) (requires --data-id to be set). If table exists, append results row to table")
     p_mtf.add_argument("--data-id",
                    dest="data_id",
                    type=str,
@@ -1307,7 +1305,6 @@ def main_int(args):
     print("# of --in input sites:                    %i" %(c_in))
 
     # Generate .tmp files.
-    import uuid
     random_id = uuid.uuid1()
     tmp_bed1 = str(random_id) + ".filtered_input_sites.tmp.bed"
     random_id = uuid.uuid1()
@@ -1373,7 +1370,6 @@ def main_exb(args):
     print("# transcript IDs read in:  %i" %(tr_ids_c))
 
     # Generate .tmp files.
-    import uuid
     random_id = uuid.uuid1()
     tmp_bed1 = str(random_id) + ".exon_regions.tmp.bed"
     random_id = uuid.uuid1()
@@ -1509,19 +1505,19 @@ def main_mtf(args):
         if args.stats_out or args.data_id:
             assert args.stats_out and args.data_id, "--stats-out requires --data-id and the other way around"
 
-        # Motif hits BED files.
-        hits_on_transcripts_bed = args.out_folder + "/" + "transcript_context_hits.bed"
-        hits_on_transcripts_fa = args.out_folder + "/" + "transcript_context_hits.fa"
-        hits_on_genome_bed = args.out_folder + "/" + "genomic_context_hits.bed"
-        hits_on_genome_fa = args.out_folder + "/" + "genomic_context_hits.fa"
-
-        # Generate results output folder.
-        if not os.path.exists(args.out_folder):
-            os.makedirs(args.out_folder)
+        if args.out_folder:
+            # Motif hits BED files.
+            hits_on_transcripts_bed = args.out_folder + "/" + "transcript_context_hits.bed"
+            hits_on_transcripts_fa = args.out_folder + "/" + "transcript_context_hits.fa"
+            hits_on_genome_bed = args.out_folder + "/" + "genomic_context_hits.bed"
+            hits_on_genome_fa = args.out_folder + "/" + "genomic_context_hits.fa"
+            # Generate results output folder.
+            if not os.path.exists(args.out_folder):
+                os.makedirs(args.out_folder)
             THOUT = open(hits_on_transcripts_bed, "w")
             GHOUT = open(hits_on_genome_bed, "w")
-            THFAOUT = open(hits_on_transcripts_fa, "w")
-            GHFAOUT = open(hits_on_genome_fa, "w")
+            THFOUT = open(hits_on_transcripts_fa, "w")
+            GHFOUT = open(hits_on_genome_fa, "w")
 
         tr_fa = args.in_data + "/" + "transcript_sites.cp.ext.fa"
         tr_bed = args.in_data + "/" + "transcript_sites.cp.ext.bed"
@@ -1572,8 +1568,8 @@ def main_mtf(args):
                 # Output motif hit on transcript to BED.
                 motif_id = seq_id + "_" + str(seq_id_hit_c)
                 if args.out_folder:
-                    THOUT.write("%s\t%i\t%i\t%s\t0\t+\n" %(tr_id, hit_tr_s, hit_tr_e, motif_id)
-                    THFOUT.write(">%s\n%s" %(motif_id, hit))
+                    THOUT.write("%s\t%i\t%i\t%s\t0\t+\n" %(tr_id, hit_tr_s, hit_tr_e, motif_id))
+                    THFOUT.write(">%s\n%s\n" %(motif_id, hit))
 
                 check_id = "%s,%i-%i" %(tr_id,hit_tr_s,hit_tr_e)
                 if check_id in tr_check_pos_dic:
@@ -1620,8 +1616,8 @@ def main_mtf(args):
                 # Output motif hit with its genomic coordinates to BED.
                 motif_id = seq_id + "_" + str(seq_id_hit_c)
                 if args.out_folder:
-                    GHOUT.write("%s\t%i\t%i\t%s\t0\t%s\n" %(chr_id, hit_gen_s, hit_gen_e, motif_id, gen_pol)
-                    GHFOUT.write(">%s\n%s" %(motif_id, hit))
+                    GHOUT.write("%s\t%i\t%i\t%s\t0\t%s\n" %(chr_id, hit_gen_s, hit_gen_e, motif_id, gen_pol))
+                    GHFOUT.write(">%s\n%s\n" %(motif_id, hit))
 
                 check_id = "%s,%i-%i,%s" %(chr_id,hit_gen_s,hit_gen_e,gen_pol)
                 if check_id in gen_check_pos_dic:
@@ -1637,6 +1633,8 @@ def main_mtf(args):
         if args.out_folder:
             THOUT.close()
             GHOUT.close()
+            THFOUT.close()
+            GHFOUT.close()
 
         c_tr_sites = len(tr_seqs_dic)
         c_gen_sites = len(gen_seqs_dic)
@@ -1650,8 +1648,8 @@ def main_mtf(args):
         tr_uniq_ratio = "0"
         tr_fl_ratio = 0
         if c_tr_hits:
-            tr_ratio = "%.7f" %(c_tr_hits / c_tr_seqs_len)
-            tr_uniq_ratio = "%.7f" %(c_tr_uniq_hits / c_tr_seqs_len)
+            tr_ratio = "%.5f" %((c_tr_hits / c_tr_seqs_len) * 1000)
+            tr_uniq_ratio = "%.5f" %((c_tr_uniq_hits / c_tr_seqs_len) * 1000)
             tr_fl_ratio = c_tr_uniq_hits / c_tr_seqs_len
             print("# transcript context hits:         %i" %(c_tr_hits))
             print("Ratio (# hits / 1000 nt):          %s" %(tr_ratio))
@@ -1669,8 +1667,8 @@ def main_mtf(args):
         gen_fl_ratio = 0
         tr_gen_ratio = 0
         if c_gen_hits:
-            gen_ratio = "%.7f" %(c_gen_hits / c_gen_seqs_len)
-            gen_uniq_ratio = "%.7f" %(c_gen_uniq_hits / c_gen_seqs_len)
+            gen_ratio = "%.5f" %((c_gen_hits / c_gen_seqs_len) * 1000)
+            gen_uniq_ratio = "%.5f" %((c_gen_uniq_hits / c_gen_seqs_len) * 1000)
             gen_fl_ratio = c_gen_uniq_hits / c_gen_seqs_len
             if tr_fl_ratio:
                 tr_gen_ratio = tr_fl_ratio / gen_fl_ratio
@@ -1715,7 +1713,7 @@ def main_mtf(args):
             # Transcript list given (type 3).
             print("--in transcript list input assumed. Check whether IDs are in --gtf ... ")
             # Read in --in IDs and check.
-            tr_ids_dic = dsglib.read_ids_into_dic(args.in_data)
+            tr_ids_dic = cliplib.read_ids_into_dic(args.in_data)
             all_tr_ids_dic = cliplib.gtf_get_transcript_ids(args.in_gtf)
             for tr_id in tr_ids_dic:
                 assert tr_id in all_tr_ids_dic, "--in transcript ID %s not found in --gtf. Use e.g. clipcontext lst to get a valid list of transcript IDs"
@@ -1723,15 +1721,16 @@ def main_mtf(args):
             print("# transcript IDs read in from --in:  %i" %(tr_ids_c))
             # Get transcript sequences.
             print("Extract transcript sequences using --gen and --gtf ... ")
+            # Returns RNA sequences.
             tr_seqs_dic = cliplib.get_transcript_sequences_from_gtf(args.in_gtf, args.in_2bit,
                                                                     tr_ids_dic=tr_ids_dic)
-
-            # Motif hits BED files.
-            hits_on_transcripts_bed = args.out_folder + "/" + "motif_hits_on_transcripts.bed"
-            hits_on_transcripts_fa = args.out_folder + "/" + "motif_hits_on_transcripts.fa"
-            # Generate results output folder.
-            if not os.path.exists(args.out_folder):
-                os.makedirs(args.out_folder)
+            if args.out_folder:
+                # Motif hits BED files.
+                hits_on_transcripts_bed = args.out_folder + "/" + "motif_hits_on_transcripts.bed"
+                hits_on_transcripts_fa = args.out_folder + "/" + "motif_hits_on_transcripts.fa"
+                # Generate results output folder.
+                if not os.path.exists(args.out_folder):
+                    os.makedirs(args.out_folder)
                 THOUT = open(hits_on_transcripts_bed, "w")
                 THFOUT = open(hits_on_transcripts_fa, "w")
 
@@ -1751,8 +1750,12 @@ def main_mtf(args):
                     motif_id = seq_id + "_" + str(seq_id_hit_c)
 
                     if args.out_folder:
-                        THOUT.write("%s\t%i\t%i\t%s\t0\t+\n" %(seq_id, hit_s, hit_e, motif_id)
-                        THFOUT.write(">%s\n%s" %(motif_id, hit))
+                        THOUT.write("%s\t%i\t%i\t%s\t0\t+\n" %(seq_id, hit_s, hit_e, motif_id))
+                        THFOUT.write(">%s\n%s\n" %(motif_id, hit))
+
+            if args.out_folder:
+                THOUT.close()
+                THFOUT.close()
 
             if not c_tr_hits:
                 print("No motif hits on specified transcript sequences")
@@ -1797,92 +1800,241 @@ def main_mtf(args):
                     else:
                         print("# motif hits with split mapping (split in %i):  %i" %(hitc, splitc_dic[hitc]))
 
+            c_tr_sites = len(tr_seqs_dic)
+
+            # Summary.
+            tr_ratio = "%.5f" %((c_tr_hits / c_tr_seqs_len) * 1000)
+            print("--motif:                      %s" %(args.in_regex))
+            print("# --in transcripts:           %i" %(c_tr_sites))
+            print("--in total sequence length:   %i" %(c_tr_seqs_len))
+            print("# motif hits on transcripts:  %i" %(c_tr_hits))
+            print("Ratio (# hits / 1000 nt):     %s" %(tr_ratio))
+            if args.out_folder:
+                print("Motif hits transcript BED:\n%s" %(hits_on_transcripts_bed))
+                print("Motif hits transcript FASTA:\n%s" %(hits_on_transcripts_fa))
+                print("Motif hits (split and full hits) on genome BED:\n%s" %(gen_all_bed))
+            print("")
+
+        elif col_c == 6:
+            # Genomic or transcript region BED given (type 2).
+            print("--in BED file assumed ... ")
+            # Check for unique IDs.
+            assert cliplib.bed_check_unique_ids(args.in_data), "--in BED file \"%s\" column 4 IDs not unique. Please provide unique IDs" %(args.in_data)
+            # Check whether IDs are genomic or transcript.
+            print("Check whether --in BED contains transcript or genomic regions ... ")
+            random_id = uuid.uuid1()
+            tmp_out = str(random_id) + ".chr_lengths"
+            chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, tmp_out)
+            if os.path.exists(tmp_out):
+                os.remove(tmp_out)
+            chr_ids_dic = cliplib.bed_get_chromosome_ids(args.in_data)
+            transcript_regions = False
+            for chr_id in chr_ids_dic:
+                if chr_id not in chr_len_dic:
+                    transcript_regions = True
+                    break
+            # --in are transcript regions case.
+            if transcript_regions:
+                # Demand pure transcript or genomic sites --in BED.
+                for chr_id in chr_ids_dic:
+                    assert chr_id not in chr_len_dic, "chromosome and non-chromosome IDs encountered in --in BED column 1. --in column 1 must contain either chromsome or transcript IDs (conflicting IDs: \"%s\", \"%s\")" %(transcript_regions, chr_id)
+                print("No chromosome IDs found in --in, interpret column 1 IDs as transcript IDs ... ")
+                # Read in transcript lengths from --gtf.
+                print("Get transcript lengths from --gtf ... ")
+                tr_len_dic = cliplib.gtf_get_transcript_lengths(args.in_gtf)
+                print("Verifying transcript IDs by checking their presence in --gtf ... ")
+                for tr_id in chr_ids_dic:
+                    assert tr_id in tr_len_dic, "--in column 1 transcript ID \"%s\" not found in --gtf" %(tr_id)
+                # Get spliced transcript sequences from gtf+2bit.
+                print("Get transcript sequences from --gtf and --gen ... ")
+                tr_seqs_dic = cliplib.get_transcript_sequences_from_gtf(args.in_gtf, args.in_2bit,
+                                                                       tr_ids_dic=chr_ids_dic)
+                # Search for motif in sequences.
+                tr_reg_dic = cliplib.bed_read_rows_into_dic(args.in_data, to_list=True)
+
+                if args.out_folder:
+                    # Motif hits BED files.
+                    hits_on_transcripts_bed = args.out_folder + "/" + "motif_hits_on_transcript_regions.bed"
+                    hits_on_transcripts_fa = args.out_folder + "/" + "motif_hits_on_transcript_regions.fa"
+                    # Generate results output folder.
+                    if not os.path.exists(args.out_folder):
+                        os.makedirs(args.out_folder)
+                    THOUT = open(hits_on_transcripts_bed, "w")
+                    THFOUT = open(hits_on_transcripts_fa, "w")
+
+                c_tr_hits = 0
+                c_tr_reg_len = 0
+                for reg_id in tr_reg_dic:
+                    tr_id = tr_reg_dic[reg_id][0] # Transcript ID.
+                    tr_s = tr_reg_dic[reg_id][1] # Region start.
+                    tr_e = tr_reg_dic[reg_id][2] # Region end.
+                    assert tr_s < tr_e, "--in start >= end position for region %s" %(reg_id)
+                    seq = tr_seqs_dic[tr_id][tr_s:tr_e] # Get region sequence.
+                    c_tr_reg_len += len(seq)
+                    seq_id_hit_c = 0
+                    for match in re.finditer(args.in_regex, seq):
+                        c_tr_hits += 1
+                        seq_id_hit_c += 1
+                        hit = match.group()
+                        hit_s = match.start() # 0-based.
+                        hit_e = match.end() # 1-based.
+
+                        # Hit transcript coordinates.
+                        hit_tr_s = tr_s + hit_s
+                        hit_tr_e = tr_s + hit_e
+
+                        # Output motif hit on transcript to BED.
+                        motif_id = reg_id + "_" + str(seq_id_hit_c)
+                        if args.out_folder:
+                            THOUT.write("%s\t%i\t%i\t%s\t0\t+\n" %(tr_id, hit_tr_s, hit_tr_e, motif_id))
+                            THFOUT.write(">%s\n%s\n" %(motif_id, hit))
+
+                if args.out_folder:
+                    THOUT.close()
+                    THFOUT.close()
+
+                if not c_tr_hits:
+                    print("No motif hits on --in transcript regions")
+                    sys.exit()
+
+                if args.out_folder:
+                    # Map transcript hits to genome.
+                    print("Mapping motif hits on transcripts to genome ... ")
+                    site2hitc_dic = {}
+                    cliplib.bed_convert_transcript_to_genomic_sites(hits_on_transcripts_bed, args.in_gtf,
+                                                                    args.out_folder,
+                                                                    site2hitc_dic=site2hitc_dic,
+                                                                    out_folder=True)
+                    assert site2hitc_dic, "site ID to hit count dictionary empty"
+
+                    # Rename output files.
+                    out_all_hits_bed = args.out_folder + "/" + "all_hits.bed"
+                    out_unique_hits_bed = args.out_folder + "/" + "unique_hits.bed"
+                    out_split_hits_bed = args.out_folder + "/" + "split_hits.bed"
+                    gen_all_bed = args.out_folder + "/" + "all_hits_on_genome.bed"
+                    gen_unique_bed = args.out_folder + "/" + "full_length_hits_on_genome.bed"
+                    gen_split_bed = args.out_folder + "/" + "split_hits_on_genome.bed"
+                    cliplib.move_rename_file(out_all_hits_bed, gen_all_bed)
+                    cliplib.move_rename_file(out_unique_hits_bed, gen_unique_bed)
+                    cliplib.move_rename_file(out_split_hits_bed, gen_split_bed)
+
+                    # Get hit counts and split numbers.
+                    splitc_dic = {}
+                    c_all_hits = 0
+                    for site_id in site2hitc_dic:
+                        hitc = site2hitc_dic[site_id]
+                        c_all_hits += 1
+                        if hitc in splitc_dic:
+                            splitc_dic[hitc] += 1
+                        else:
+                            splitc_dic[hitc] = 1
+                    # Report mapping stats (split numbers and hit counts).
+                    print("# motif hits mapped to genome:           %i" %(c_all_hits))
+                    for hitc in splitc_dic:
+                        if hitc == 1:
+                            print("# motif hits without split mapping:      %i" %(splitc_dic[hitc]))
+                        else:
+                            print("# motif hits with split mapping (split in %i):  %i" %(hitc, splitc_dic[hitc]))
+
                 # Summary.
-
-
-            else:
-                # Summary.
-                tr_ratio = "%.7f" %(c_tr_hits / c_tr_seqs_len)
-                print("# motif hit on transcripts:        %i" %(c_tr_hits))
-                print("Ratio (# hits / 1000 nt):          %s" %(tr_ratio))
-                print("# unique transcript context hits:  %i" %(c_tr_uniq_hits))
-
+                c_tr_reg = len(tr_reg_dic)
+                tr_ratio = "%.5f" %((c_tr_hits / c_tr_reg_len) * 1000)
+                print("--motif:                     %s" %(args.in_regex))
+                print("--in transcript regions:     %i" %(c_tr_reg))
+                print("--in total sequence length:  %i" %(c_tr_reg_len))
+                print("# motif hits on regions:     %i" %(c_tr_hits))
+                print("Ratio (# hits / 1000 nt):    %s" %(tr_ratio))
                 if args.out_folder:
                     print("Motif hits transcript BED:\n%s" %(hits_on_transcripts_bed))
                     print("Motif hits transcript FASTA:\n%s" %(hits_on_transcripts_fa))
+                    print("Motif hits (split and full hits) on genome BED:\n%s" %(gen_all_bed))
+                print("")
 
+            else:
+                # Genomic regions.
+                for chr_id in chr_ids_dic:
+                    assert chr_id in chr_len_dic, "chromosome and non-chromosome IDs encountered in --in BED column 1 ID \"%s\" is not a valid chromosome ID (not found in --gen)" %(chr_id)
+                print("--in column 1 IDs are chromosome IDs, assume genomic regions ... ")
+                # Get genomic region sequences.
+                print("Get genomic region sequences ... ")
+                random_id = uuid.uuid1()
+                tmp_fa = str(random_id) + ".tmp.fa"
+                cliplib.bed_extract_sequences_from_2bit(args.in_data, tmp_fa, args.in_2bit)
+                gen_seq_dic = cliplib.read_fasta_into_dic(tmp_fa) # returns RNA.
+                if os.path.exists(tmp_fa):
+                    os.remove(tmp_fa)
+                # Get BED regions.
+                gen_reg_dic = cliplib.bed_read_rows_into_dic(args.in_data, to_list=True)
+                # Checks.
+                for reg_id in gen_reg_dic:
+                    assert reg_id in gen_seq_dic, "no sequence extracted for region ID %s" %(reg_id)
+                    exp_reg_l = gen_reg_dic[reg_id][2] - gen_reg_dic[reg_id][1]
+                    ext_reg_l = len(gen_seq_dic[reg_id])
+                    assert exp_reg_l == ext_reg_l, "extracted sequence length != BED region length for region ID %s (%i != %i)" %(reg_id, ext_reg_l, exp_reg_l)
 
+                if args.out_folder:
+                    # Motif hits BED files.
+                    hits_on_genome_bed = args.out_folder + "/" + "motif_hits_on_genomic_regions.bed"
+                    hits_on_genome_fa = args.out_folder + "/" + "motif_hits_on_genomic_regions.fa"
+                    # Generate results output folder.
+                    if not os.path.exists(args.out_folder):
+                        os.makedirs(args.out_folder)
+                    GHOUT = open(hits_on_genome_bed, "w")
+                    GHFOUT = open(hits_on_genome_fa, "w")
 
+                c_gen_hits = 0
+                c_gen_reg_len = 0
+                for reg_id in gen_reg_dic:
+                    seq = gen_seq_dic[reg_id]
+                    c_gen_reg_len += len(seq)
+                    chr_id = gen_reg_dic[reg_id][0]
+                    gen_s = gen_reg_dic[reg_id][1]
+                    gen_e = gen_reg_dic[reg_id][2]
+                    gen_pol = gen_reg_dic[reg_id][5]
+                    seq_id_hit_c = 0
+                    for match in re.finditer(args.in_regex, seq):
+                        c_gen_hits += 1
+                        seq_id_hit_c += 1
+                        hit = match.group()
+                        hit_s = match.start()
+                        hit_e = match.end()
 
+                        # Hit genomic coordinates.
+                        hit_gen_s = gen_s + hit_s
+                        hit_gen_e = gen_s + hit_e
+                        if gen_pol == "-":
+                            hit_gen_s = gen_e - hit_e
+                            hit_gen_e = gen_e - hit_s
 
+                        # Output motif hit with its genomic coordinates to BED.
+                        motif_id = reg_id + "_" + str(seq_id_hit_c)
+                        if args.out_folder:
+                            GHOUT.write("%s\t%i\t%i\t%s\t0\t%s\n" %(chr_id, hit_gen_s, hit_gen_e, motif_id, gen_pol))
+                            GHFOUT.write(">%s\n%s\n" %(motif_id, hit))
 
+                if args.out_folder:
+                    GHOUT.close()
+                    GHFOUT.close()
 
+                if not c_gen_hits:
+                    print("No motif hits on --in genomic regions")
+                    sys.exit()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        elfif col_c == 6:
+                # Summary.
+                c_gen_reg = len(gen_reg_dic)
+                gen_ratio = "%.5f" %( (c_gen_hits / c_gen_reg_len) * 1000 )
+                print("--motif:                     %s" %(args.in_regex))
+                print("--in genomic regions:        %i" %(c_gen_reg))
+                print("--in total sequence length:  %i" %(c_gen_reg_len))
+                print("# motif hits on regions:     %i" %(c_gen_hits))
+                print("Ratio (# hits / 1000 nt):    %s" %(gen_ratio))
+                if args.out_folder:
+                    print("Motif hits genome BED:\n%s" %(hits_on_genome_bed))
+                    print("Motif hits genome FASTA:\n%s" %(hits_on_genome_fa))
+                print("")
 
         else:
             assert False, "--in file # columns to be expected 6 for (for type 2, BED) or 1 (for type 3, transcript list)"
-
-
-
-
-    # Read in transcript ID list.
-    tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
-    tr_ids_c = len(tr_ids_dic)
-    assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
-    print("# transcript IDs read in:                    %i" %(tr_ids_c))
-
-    # Extract transcript sequences from .2bit.
-    print("Extract transcript sequences using --gen and --gtf ... ")
-    tr_seqs_dic = cliplib.get_transcript_sequences_from_gtf(args.in_gtf, args.in_2bit,
-                                                            tr_ids_dic=tr_ids_dic)
-    # Get transcript lengths.
-    tr_len_dic = cliplib.get_seq_lengths_from_seqs_dic(tr_seqs_dic)
-    # Get chromosome lengths.
-    chr_len_dic = cliplib.get_chromosome_lengths_from_2bit(args.in_2bit, chr_lengths_file)
-
-
-
-
-    else:
-        assert False, "given --in string is neither file nor folder"
-
-
-
-
-
 
 
 ################################################################################

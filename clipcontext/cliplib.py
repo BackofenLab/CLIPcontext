@@ -2817,7 +2817,7 @@ def get_transcript_sequences_from_gtf(in_gtf, in_2bit,
     # Get exon numbers for each transcript.
     tr_exc_dic = bed_get_transcript_exon_numbers(tmp_bed)
 
-    # Read in sequences.
+    # Read in sequences (converts to RNA!).
     exon_seqs_dic = read_fasta_into_dic(tmp_fa)
 
     # Concatenate exon region sequences.
