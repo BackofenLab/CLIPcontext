@@ -1250,6 +1250,7 @@ def main_lst(args):
                                                    strict=args.strict,
                                                    min_len=args.min_len,
                                                    add_infos=args.add_infos)
+    print("")
 
 
 ################################################################################
