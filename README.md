@@ -40,7 +40,7 @@ In **EIR** mode, CLIPcontext creates exon + intron regions BED files for a given
 
 ### MTF
 
-In **MTF** mode, CLIPcontext searches for a motif or regular expression inside the extracted transcript and genomic context sequences (output folder of clipcontext g2t or clipcontext t2g as --in input), and reports counts and frequencies in the two sets. In addition, CLIPcontext mtf can be used to search for a motif in the transcriptome, with the hits also being mapped back to the genome (full and split hits).
+In **MTF** mode, CLIPcontext searches for a motif or regular expression inside the extracted transcript and genomic context sequences (output folder of clipcontext g2t or clipcontext t2g as --in input), and reports counts and frequencies in the two sets. In addition, CLIPcontext mtf can be used to search for a motif in the transcriptome (or any specified set of transcripts), with the hits also being mapped back to the genome (full and split hits).
 
 
 ## Installation
