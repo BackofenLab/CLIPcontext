@@ -1793,6 +1793,7 @@ def main_mtf(args):
                         splitc_dic[hitc] += 1
                     else:
                         splitc_dic[hitc] = 1
+                split_hits_on_genome = False
                 # Report mapping stats (split numbers and hit counts).
                 print("# motif hits mapped to genome:           %i" %(c_all_hits))
                 for hitc in splitc_dic:
@@ -1800,6 +1801,7 @@ def main_mtf(args):
                         print("# motif hits without split mapping:      %i" %(splitc_dic[hitc]))
                     else:
                         print("# motif hits with split mapping (split in %i):  %i" %(hitc, splitc_dic[hitc]))
+                        split_hits_on_genome = True
 
             c_tr_sites = len(tr_seqs_dic)
 
@@ -1813,7 +1815,12 @@ def main_mtf(args):
             if args.out_folder:
                 print("Motif hits transcript BED:\n%s" %(hits_on_transcripts_bed))
                 print("Motif hits transcript FASTA:\n%s" %(hits_on_transcripts_fa))
-                print("Motif hits (split and full hits) on genome BED:\n%s" %(gen_all_bed))
+                if split_hits_on_genome:
+                    print("Motif hits (split and full hits) on genome BED:\n%s" %(gen_all_bed))
+                    print("Motif hits (split hits only) on genome BED:\n%s" %(gen_split_bed))
+                    print("Motif hits (full hits only) on genome BED:\n%s" %(gen_unique_bed))
+                else:
+                    print("Motif hits on genome BED:\n%s" %(gen_all_bed))
             print("")
 
         elif col_c == 6:
