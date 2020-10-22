@@ -9,7 +9,7 @@ import sys
 import re
 import os
 
-__version__ = "0.7"
+__version__ = "0.8"
 
 """
 
@@ -388,12 +388,6 @@ def setup_argument_parser():
     # Add required arguments group.
     p_eirm = p_eir.add_argument_group("required arguments")
     # Required arguments for eir.
-    p_eirm.add_argument("--tr",
-                   dest="in_tr_list",
-                   type=str,
-                   metavar='str',
-                   required = True,
-                   help = "Transcript sequence IDs list file for which to extract exon + intron regions")
     p_eirm.add_argument("--gtf",
                    dest="in_gtf",
                    type=str,
@@ -412,6 +406,13 @@ def setup_argument_parser():
                    metavar='str',
                    required = True,
                    help = "Intron regions BED output file")
+    # Optional arguments.
+    p_eir.add_argument("--tr",
+                   dest="in_tr_list",
+                   type=str,
+                   metavar='str',
+                   help = "Transcript sequence IDs list file for which to extract exon + intron regions. By default regions are extracted for all transcripts from --gtf")
+
 
     # Motif search mode.
     p_mtf = subparsers.add_parser('mtf',
@@ -1264,14 +1265,19 @@ def main_eir(args):
 
     print("Running for you in EIR mode ... ")
 
-    # Read in transcript ID list.
-    tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
-    tr_ids_c = len(tr_ids_dic)
-    assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
-    print("# transcript IDs read in:  %i" %(tr_ids_c))
-
+    # Get transcript IDs for which to extract exon + intron regions.
+    tr_ids_dic = False
+    if args.in_tr_list:
+        # Read in transcript ID list.
+        print("Read in transcript IDs from --tr ... ")
+        tr_ids_dic = cliplib.read_ids_into_dic(args.in_tr_list)
+        tr_ids_c = len(tr_ids_dic)
+        assert tr_ids_c, "no transcript IDs read in from \"%s\"" %(args.in_tr_list)
+        print("# transcript IDs read in:  %i" %(tr_ids_c))
+        print("Extracting exon + intron regions for read-in transcript IDs ... ")
+    else:
+        print("Extracting exon + intron regions for all transcripts in --gtf ... ")
     # Extract exon + intron regions for given transcripts.
-    print("Extracting exon + intron regions for read-in transcript IDs ... ")
     cliplib.gtf_extract_exon_bed(args.in_gtf, args.exon_out,
                                  out_intron_bed=args.intron_out,
                                  tr_ids_dic=tr_ids_dic)
@@ -2080,7 +2086,7 @@ if __name__ == '__main__':
     # Check file inputs.
     if args.which != 'mtf':
         assert os.path.exists(args.in_gtf), "--gtf GTF file \"%s\" not found" %(args.in_gtf)
-    if args.which != 'lst' and args.which != 't2g' and args.which != 'mtf':
+    if args.which != 'lst' and args.which != 't2g' and args.which != 'mtf' and args.which != 'eir':
         assert os.path.exists(args.in_tr_list), "input transcript ID list file \"%s\" not found" %(args.in_tr_list)
     if args.which != 'eir' and args.which != 'lst' and args.which != 'mtf':
         assert os.path.exists(args.in_bed), "--in BED file \"%s\" not found" %(args.in_bed)
