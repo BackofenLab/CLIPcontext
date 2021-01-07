@@ -455,6 +455,6 @@ Additional information includes the gene ID, gene name, gene biotype, transcript
 
 If you are using CLIPcontext in your publications, please cite the following paper:
 
-- [Improving CLIP-seq data analysis by incorporating transcript information](https://doi.org/10.1186/s12864-020-07297-0) Michael Uhl, Van Dinh Tran, and Rolf Backofen. BMC genomics 21.1 (2020): 1-8. DOI:[10.1186/s12864-020-07297-0](https://doi.org/10.1186/s12864-020-07297-0).
+- [Improving CLIP-seq data analysis by incorporating transcript information](https://doi.org/10.1186/s12864-020-07297-0). Michael Uhl, Van Dinh Tran, and Rolf Backofen. BMC Genomics 21.1 (2020): 1-8. DOI:[10.1186/s12864-020-07297-0](https://doi.org/10.1186/s12864-020-07297-0).
 
 
