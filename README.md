@@ -1,6 +1,31 @@
 # CLIPcontext
 
-CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. The following modes are currently available:
+CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. Please check the content below for a description of its operating modes, installation instructions, the documentation, and references for citation. 
+
+
+## Table of contents
+
+- [Operating modes](#operating-modes)
+    - [G2T](#g2t)
+    - [T2G](#t2g)
+    - [LST](#lst)
+    - [INT](#int)
+    - [EXB](#exb)
+    - [EIR](#eir)
+    - [MTF](#mtf)
+- [Installation](#installation)
+    - [Dependencies](#dependencies)
+    - [Dataset requirements](#dataset-requirements)
+    - [Test run](#test-run)
+- [Documentation](#documentation)
+    - [G2T mode](#g2t-mode)
+    - [T2G mode](#t2g-mode)
+    - [Additional modes](#additional-modes)
+    - [Dataset formats](#dataset-formats)
+- [References](#references)
+
+
+## Operating modes
 
 ### G2T
 
@@ -118,7 +143,7 @@ optional arguments:
 
 ```
 
-### G2T
+### G2T mode
 
 The following command line arguments are available in **G2T** mode:
 
@@ -243,7 +268,7 @@ If --report is set, an **HTML report** is output as well, providing comparative 
 
 compare sites containing genomic context with sites containing transcript context
 
-### T2G
+### T2G mode
 
 The following command line arguments are available in **T2G** mode:
 
@@ -338,9 +363,9 @@ test_out_t2g/report.t2g.html
 The **HTML report** provides the same comparative statistics for the extracted genomic and transcript sequences (.cp.ext.fa) as the report of clipcontext g2t (see details above).
 
 
-### Additional modes (LST, INT, EXB, EIR, MTF)
+### Additional modes
 
-Executing the additional modes should be self-explanatory. Here are a few example runs (again inside the test/ subfolder) for the individual modes:
+Executing the additional modes (LST, INT, EXB, EIR, MTF) should be self-explanatory. Here are a few example runs (again inside the test/ subfolder) for the individual modes:
 
 ```
 clipcontext lst --gtf Homo_sapiens.GRCh38.98.gtf.gz --out prominent_transcripts_gtf.out --strict --add-infos
@@ -424,5 +449,12 @@ ENST00000379370	chr1	1020119	1056116	+	ENSG00000188157	AGRN	protein_coding	7326	
 ```
 
 Additional information includes the gene ID, gene name, gene biotype, transcript length, and the genomic region coordinates of the transcript. The different hit counts are: # complete (full-length matching) hits, # all hits (complete and incomplete), # unique (matching to one exon/transcript only) + complete hits, and # all unique hits.
+
+
+## References
+
+If you are using CLIPcontext in your publications, please cite the following paper:
+
+- [Improving CLIP-seq data analysis by incorporating transcript information](https://doi.org/10.1186/s12864-020-07297-0) Michael Uhl, Van Dinh Tran, and Rolf Backofen. BMC genomics 21.1 (2020): 1-8. DOI:[10.1186/s12864-020-07297-0](https://doi.org/10.1186/s12864-020-07297-0).
 
 
