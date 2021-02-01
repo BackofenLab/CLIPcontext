@@ -1561,6 +1561,7 @@ def read_fasta_into_dic(fasta_file,
                         ids_dic=False,
                         read_dna=False,
                         reject_lc=False,
+                        replace_ws=True,
                         convert_to_uc=False,
                         skip_n_seqs=True):
     """
@@ -1589,11 +1590,14 @@ def read_fasta_into_dic(fasta_file,
         if re.search(">.+", line):
             m = re.search(">(.+)", line)
             seq_id = m.group(1)
-            # If there is a ".", take only first part of header.
+            # If whitespaces should be replaced by "_".
+            if replace_ws:
+                seq_id = seq_id.strip().replace(" ", "_")
+            # If there is a ".", take only first part of header (ID + version number).
             # This assumes ENSEMBL header format ">ENST00000631435.1 cdna ..."
-            if re.search(".+\..+", seq_id):
-                m = re.search("(.+?)\..+", seq_id)
-                seq_id = m.group(1)
+            #if re.search(".+\.\d", seq_id):
+            #    m = re.search("(.+?\.\d+)", seq_id)
+            #    seq_id = m.group(1)
             assert seq_id not in seqs_dic, "non-unique FASTA header \"%s\" in \"%s\"" % (seq_id, fasta_file)
             if ids_dic:
                 if seq_id in ids_dic:
@@ -1839,6 +1843,7 @@ def gtf_extract_exon_bed(in_gtf, out_bed,
         if re.search("^#", line):
             continue
         cols = line.strip().split("\t")
+        assert len(cols) == 9, "# columns in --gtf expected to be 9 but found entry with %i" %(len(cols))
         chr_id = cols[0]
         feature = cols[2]
         feat_s = int(cols[3])

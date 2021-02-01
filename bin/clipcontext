@@ -995,6 +995,8 @@ def main_t2g(args):
 
     # Output files.
     filt_in_bed = args.out_folder + "/" + "transcript_sites.bed"
+    filt_in_fa = args.out_folder + "/" + "transcript_sites.fa"
+    tr_seqs_fa = args.out_folder + "/" + "transcript_sequences.fa"
     chr_lengths_file = args.out_folder + "/" + "chromosome_lengths.out"
     gen_all_bed = args.out_folder + "/" + "genomic_hits.all.bed"
     gen_unique_bed = args.out_folder + "/" + "genomic_hits.unique.bed"
@@ -1057,6 +1059,17 @@ def main_t2g(args):
     c_sites_with_seq = cliplib.count_file_rows(filt_in_bed)
     assert c_sites_with_seq, "no transcript sites left after sequence extraction"
     print("# transcript sites after sequence extraction:  %i" %(c_sites_with_seq))
+
+    # Get input transcript site sequences and output to FASTA.
+    intrid2row_dic = cliplib.bed_read_rows_into_dic(filt_in_bed)
+    intrid2seq_dic = cliplib.extract_transcript_sequences(intrid2row_dic, tr_seqs_dic)
+    # Output sequences to FASTA file.
+    cliplib.fasta_output_dic(intrid2seq_dic, filt_in_fa,
+                             split=True,
+                             split_size=60)
+    cliplib.fasta_output_dic(tr_seqs_dic, tr_seqs_fa,
+                             split=True,
+                             split_size=60)
 
     # Map full length sites to genome (get split and full sites).
     print("Mapping full length transcript sites to genome ... ")
@@ -1208,9 +1221,11 @@ def main_t2g(args):
     print("TRANSCRIPT FILES")
     print("================")
     print("Filtered transcript sites .bed:\n%s" %(filt_in_bed))
+    print("Filtered transcript sites .fa:\n%s" %(filt_in_fa))
     print("Filtered transcript sites center positions .bed:\n%s" %(tr_cp_bed))
     print("Filtered transcript sites extended .bed:\n%s" %(tr_cp_ext_bed))
     print("Filtered transcript sites extended .fa:\n%s" %(tr_cp_ext_fa))
+    print("Transcript sequences .fa:\n%s" %(tr_seqs_fa))
     print("Transcript exon regions .bed:\n%s\n" %(out_exon_regions_transcript_bed))
 
     print("GENOMIC FILES (FROM MAPPING FULL-LENGTH TRANSCRIPT SITES)")
