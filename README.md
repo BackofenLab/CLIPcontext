@@ -1,5 +1,8 @@
 # CLIPcontext
 
+[![GitHub](https://img.shields.io/github/tag/BackofenLab/CLIPcontext.svg)](https://github.com/BackofenLab/CLIPcontext)
+[![Bioconda](https://anaconda.org/bioconda/clipcontext/badges/version.svg)](https://anaconda.org/bioconda/clipcontext)
+
 CLIPcontext is a tool suite that offers several modes to map RBP binding regions to the transcriptome or genome. Please check the content below for a description of its operating modes, installation instructions, the documentation, and references for citation. 
 
 
